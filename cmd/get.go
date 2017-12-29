@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/aroq/uniconf/uniconf"
 )
 
 // getCmd represents the get command
