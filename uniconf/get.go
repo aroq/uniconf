@@ -59,17 +59,17 @@ const (
 )
 
 func (c *Conf) ReadFile(filename string) []byte {
-	yamlFile, err := ioutil.ReadFile(filename)
+	f, err := ioutil.ReadFile(filename)
 	if err != nil {
-		log.Panicf("yamlFile.Get err: %v ", err)
+		log.Panicf("ReadFile error: %v ", err)
 	}
-	return yamlFile
+	return f
 }
 
-func (c *Conf) Unmarshal(yamlFile []byte) *Conf {
+func (c *Conf) UnmarshalYaml(yamlFile []byte) *Conf {
 	err := yaml.Unmarshal(yamlFile, c)
 	if err != nil {
-		log.Panicf("Unmarshal: %v", err)
+		log.Panicf("UnmarshalYaml error: %v", err)
 	}
 	return c
 }
@@ -85,7 +85,7 @@ func (c *Conf) Process(yamlFile []byte, currentSourceName string) Conf {
 	}
 
 	var projectConfig Conf
-	projectConfig.Unmarshal(yamlFile)
+	projectConfig.UnmarshalYaml(yamlFile)
 
 	unitools.Merge(config, projectConfig)
 
