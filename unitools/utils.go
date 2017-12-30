@@ -16,10 +16,10 @@ package unitools
 
 import (
 	"fmt"
-	"strings"
-	"log"
 	"github.com/spf13/viper"
+	"log"
 	"os/exec"
+	"strings"
 )
 
 func ExecCommandString(cmd string) {
@@ -35,8 +35,8 @@ func ExecCommandString(cmd string) {
 	}
 	fmt.Printf("%s\n", out)
 }
-func ExecCommand(name string, arg...string) {
-	log.Printf("command is %v", name + " " + strings.Join(arg, " "))
+func ExecCommand(name string, arg ...string) {
+	log.Printf("command is %v", name+" "+strings.Join(arg, " "))
 	if viper.GetBool("simulate") {
 		log.Println("Command executed in simulate mode")
 	} else {

@@ -17,8 +17,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/aroq/uniconf/uniconf"
+	"github.com/spf13/cobra"
 )
 
 // getCmd represents the get command
@@ -40,7 +40,6 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(getCmd)
-
 
 	// Here you will define your flags and configuration settings.
 

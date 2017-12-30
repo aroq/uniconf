@@ -15,17 +15,17 @@
 package uniconf
 
 import (
-	"log"
-	"path"
-	"os"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"strings"
 	"encoding/json"
-	"github.com/ghodss/yaml"
-	"io/ioutil"
 	"fmt"
 	"github.com/aroq/uniconf/unitools"
+	"github.com/ghodss/yaml"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"io/ioutil"
+	"log"
+	"os"
+	"path"
+	"strings"
 )
 
 type Conf map[string]interface{}
@@ -53,8 +53,8 @@ const (
 )
 
 const (
-	refPrefix       = "refs/"
-	refHeadPrefix   = refPrefix + "heads/"
+	refPrefix     = "refs/"
+	refHeadPrefix = refPrefix + "heads/"
 	//refTagPrefix    = refPrefix + "tags/"
 )
 
@@ -113,10 +113,10 @@ func (c *Conf) Process(yamlFile []byte, currentSourceName string) Conf {
 				log.Println("Try to clone without 'git' command...")
 
 				_, err := git.PlainClone(sourcePath, false, &git.CloneOptions{
-					URL:          repo,
-					Progress:     os.Stdout,
-					SingleBranch: true,
-					Depth:        1,
+					URL:           repo,
+					Progress:      os.Stdout,
+					SingleBranch:  true,
+					Depth:         1,
 					ReferenceName: plumbing.ReferenceName(prefix.(string) + reference),
 				})
 				if err != nil {
@@ -156,7 +156,7 @@ func (c *Conf) Process(yamlFile []byte, currentSourceName string) Conf {
 			scenarioFileName := path.Join(sourcePath, scenarioName)
 
 			// TODO: support both 'yaml' & 'yml' file extensions.
-			scenarioFileNamesToCheck = append(scenarioFileNamesToCheck, scenarioFileName + ".yaml")
+			scenarioFileNamesToCheck = append(scenarioFileNamesToCheck, scenarioFileName+".yaml")
 			scenarioFileNamesToCheck = append(scenarioFileNamesToCheck, path.Join(scenarioFileName, mainConfigFileName))
 
 			for _, f := range scenarioFileNamesToCheck {
