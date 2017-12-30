@@ -48,6 +48,7 @@ func ExecCommand(name string, arg...string) {
 	}
 }
 
+// TODO: Add merge for lists (initial arguments).
 func Merge(dst, src map[string]interface{}) map[string]interface{} {
 	for k, v := range src {
 		if dst == nil {
