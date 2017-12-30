@@ -25,16 +25,16 @@ import (
 	"github.com/ghodss/yaml"
 	"io/ioutil"
 	"fmt"
+	"github.com/aroq/uniconf/unitools"
 )
 
-//type ProjectConf map[string]interface{}
 type Conf map[string]interface{}
 
 var c Conf
 
 type Source struct {
 	Url          string
-	Ref string
+	Ref          string
 	StoredPath   string
 	ScenariosDir string
 }
@@ -49,17 +49,14 @@ const (
 	sourcesStoragePath     = "sources"
 	mainConfigFileName     = "config.yaml"
 	scenariosPath          = "scenarios"
-	configEnvVarName       = "UNIPIPE_SOURCES"
+	configEnvVarName       = "UNIPIPE_CONFIG"
 )
 
-// TODO: load default config values from yamlin.yaml.
-type Config struct {
-	sources_list_key_name  string
-	sources_storage_path   string
-	scenarios_key_name     string
-	scenarios_default_path string
-	main_config_file_name  string
-}
+const (
+	refPrefix       = "refs/"
+	refHeadPrefix   = refPrefix + "heads/"
+	//refTagPrefix    = refPrefix + "tags/"
+)
 
 func (c *Conf) ReadFile(filename string) []byte {
 	yamlFile, err := ioutil.ReadFile(filename)
@@ -100,10 +97,12 @@ func (c *Conf) Process(yamlFile []byte, currentSourceName string) Conf {
 				log.Printf("Source is not loaded: %s\n", k)
 				source := v.(map[string]interface{})
 				repo := source["repo"].(string)
+
 				prefix, ok := source["prefix"]
 				if !ok {
-					prefix = "refs/heads/"
+					prefix = refHeadPrefix
 				}
+
 				var reference string
 				if _, ok := source["ref"]; ok {
 					reference = source["ref"].(string)
