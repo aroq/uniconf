@@ -77,17 +77,17 @@ func (c *Conf) Unmarshal(yamlFile []byte) *Conf {
 func (c *Conf) Process(yamlFile []byte, currentSourceName string) Conf {
 	config := make(map[string]interface{})
 
-	envConfigString := os.Getenv("UNIPIPE_CONFIG")
+	envConfigString := os.Getenv(configEnvVarName)
 	if envConfigString != "" {
 		var envConfig Conf
 		json.Unmarshal([]byte(envConfigString), &envConfig)
-		Merge(config, envConfig)
+		unitools.Merge(config, envConfig)
 	}
 
 	var projectConfig Conf
 	projectConfig.Unmarshal(yamlFile)
 
-	Merge(config, projectConfig)
+	unitools.Merge(config, projectConfig)
 
 	if sources, ok := config[sourceListElementName].(map[string]interface{}); ok {
 		for k, v := range sources {
@@ -121,9 +121,10 @@ func (c *Conf) Process(yamlFile []byte, currentSourceName string) Conf {
 				})
 				if err != nil {
 					log.Printf("Error: %s\n", err)
+
 					// TODO: Recheck this part.
 					log.Println("Try to clone with 'git' command execution...")
-					ExecCommandString(fmt.Sprintf("git clone --depth=1 -b %s %s %s", reference, repo, sourcePath))
+					unitools.ExecCommandString(fmt.Sprintf("git clone --depth=1 -b %s %s %s", reference, repo, sourcePath))
 				} else {
 					loadedSources[k] = Source{StoredPath: sourcePath, Url: repo, Ref: reference}
 				}
@@ -153,20 +154,22 @@ func (c *Conf) Process(yamlFile []byte, currentSourceName string) Conf {
 			var scenarioFileNamesToCheck []string
 
 			scenarioFileName := path.Join(sourcePath, scenarioName)
-			scenarioFileNamesToCheck = append(scenarioFileNamesToCheck, scenarioFileName+".yaml")
+
+			// TODO: support both 'yaml' & 'yml' file extensions.
+			scenarioFileNamesToCheck = append(scenarioFileNamesToCheck, scenarioFileName + ".yaml")
 			scenarioFileNamesToCheck = append(scenarioFileNamesToCheck, path.Join(scenarioFileName, mainConfigFileName))
 
 			for _, f := range scenarioFileNamesToCheck {
 				if _, err := os.Stat(f); err == nil {
 					yamlSubFile := c.ReadFile(f)
 					scenarioConfig := c.Process(yamlSubFile, sourceName)
-					Merge(scenariosConfig, scenarioConfig)
+					unitools.Merge(scenariosConfig, scenarioConfig)
 				}
 			}
 		}
 	}
 
-	Merge(scenariosConfig, projectConfig)
+	unitools.Merge(scenariosConfig, projectConfig)
 	return scenariosConfig
 }
 
