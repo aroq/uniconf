@@ -1,6 +1,8 @@
 package unitools
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestMerge(t *testing.T) {
 	src := map[string]interface{}{
@@ -25,7 +27,13 @@ func TestMerge(t *testing.T) {
 
 	Merge(src, dest)
 
+    // Test deep key merging.
 	if src["key1"].(map[string]interface{})["key1_subkey2"] != "key1_subkey2_value_override" {
-		t.Error("Deep key merging failed")
+		t.Errorf("Deep key merging failed: %s", "key1_subkey2 != key1_subkey2_value_override")
+	}
+
+	// Test key merging.
+	if src["key2"].(map[string]interface{})["key2_subkey1"] != "key2_subkey1_value" {
+		t.Errorf("Deep key merging failed: %s", "key2_subkey1 != key2_subkey1_value")
 	}
 }
