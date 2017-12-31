@@ -177,8 +177,8 @@ func (u *Uniconf) Load() {
 
 		if envConfig, err := unitools.UnmarshalEnvVarJson(configEnvVarName); err == nil {
 			u.loadedSources["env"] = Source{Path: "."}
-			processedConfig := u.ProcessConfig(envConfig, "env")
-			unitools.Merge(u.config, processedConfig)
+			processedEnvConfig := u.ProcessConfig(envConfig, "env")
+			unitools.Merge(u.config, processedEnvConfig)
 		}
 
 		projectConfig := u.LoadConfig(yamlFile, ".")
