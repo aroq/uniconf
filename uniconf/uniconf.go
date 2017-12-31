@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"github.com/aroq/uniconf/unitools"
 	"github.com/ghodss/yaml"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"path"
 	"strings"

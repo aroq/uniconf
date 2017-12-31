@@ -5,3 +5,5 @@ import:
 - package: github.com/spf13/viper
 - package: github.com/ghodss/yaml
 - package: gopkg.in/src-d/go-git.v4
+- package: github.com/sirupsen/logrus
+  version: ^1.0.4

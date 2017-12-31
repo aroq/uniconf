@@ -17,7 +17,7 @@ package unitools
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os/exec"
 	"strings"
 	"os"

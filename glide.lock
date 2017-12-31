@@ -1,5 +1,5 @@
-hash: 6f4c281878f684e5a68a96ca34eb8db18e8d4cf458c8a2423cd2b65a78474f16
-updated: 2017-12-29T17:24:22.040882+03:00
+hash: 2ff8bf75fa6dbb0dba93d4b66f73b4684e6a870446571336e4d5b16a43cac944
+updated: 2017-12-31T16:48:01.590004+03:00
 imports:
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
@@ -35,6 +35,8 @@ imports:
   version: 1744e2970ca51c86172c8190fadad617561ed6e7
   subpackages:
   - diffmatchpatch
+- name: github.com/sirupsen/logrus
+  version: d682213848ed68c0a260ca37d6dd5ace8423f5ba
 - name: github.com/spf13/afero
   version: 57afd63c68602b63ed976de00dd066ccb3c319db
   subpackages:
@@ -42,7 +44,7 @@ imports:
 - name: github.com/spf13/cast
   version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
 - name: github.com/spf13/cobra
-  version: ccaecb155a2177302cb56cae929251a256d0f646
+  version: b95ab734e27d33e0d8fbabf71ca990568d4e2020
 - name: github.com/spf13/jwalterweatherman
   version: 12bd96e66386c1960ab0f74ced1362f66f552f7b
 - name: github.com/spf13/pflag
