@@ -82,23 +82,6 @@ func (u *Uniconf) Load() {
 	}
 }
 
-func (u *Uniconf) RegisterSource(name string, sourceMap map[string]interface{}) {
-	source := NewSource(name, sourceMap)
-	u.sources[name] = source
-}
-
-func (u *Uniconf) RegisterSources(sources map[string]interface{}) {
-	for k, v := range sources {
-		log.Printf("Processing source: %s\n", k)
-		if _, ok := u.sources[k]; !ok {
-			log.Printf("Source is not loaded: %s\n", k)
-			u.RegisterSource(k, v.(map[string]interface{}))
-		} else {
-			log.Printf("Source: %s already loaded", k)
-		}
-	}
-}
-
 func (u *Uniconf) GetSource(name string) *Source {
 	if source, ok := u.sources[name]; ok {
 		if !source.isLoaded {
@@ -116,7 +99,16 @@ func (u *Uniconf) GetSource(name string) *Source {
 
 func (u *Uniconf) ProcessSources(config map[string]interface{}) {
 	if sources, ok := config[sourceMapElementName].(map[string]interface{}); ok {
-		u.RegisterSources(sources)
+		for k, v := range sources {
+			log.Printf("Processing source: %s\n", k)
+			if _, ok := u.sources[k]; !ok {
+				log.Printf("Source is not loaded: %s\n", k)
+				source := NewSource(k, v.(map[string]interface{}))
+				u.sources[k] = source
+			} else {
+				log.Printf("Source: %s already loaded", k)
+			}
+		}
 	}
 }
 
