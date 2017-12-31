@@ -72,16 +72,6 @@ func (u *Uniconf) ReadFile(filename string) []byte {
 	return f
 }
 
-func (u *Uniconf) UnmarshalYaml(yamlFile []byte) (map[string]interface{}, error) {
-	y := make(map[string]interface{})
-	err := yaml.Unmarshal(yamlFile, &y)
-	if err != nil {
-		log.Panicf("UnmarshalYaml error: %v", err)
-		return nil, err
-	}
-	return y, nil
-}
-
 func (u *Uniconf) RegisterSource(name string, sourceMap map[string]interface{}) {
 	source := NewSource(name, sourceMap)
 	u.registeredSources[name] = *source
@@ -106,7 +96,6 @@ func (u *Uniconf) RegisterSources(sources map[string]interface{}) {
 		}
 	}
 }
-
 
 func (u *Uniconf) LoadSource(name string) *Source {
 	source := u.GetSource(name)
@@ -189,7 +178,7 @@ func (u *Uniconf) ProcessConfig(config map[string]interface{}, currentSourceName
 }
 
 func (u *Uniconf) LoadConfig(yamlFile []byte, currentSourceName string) map[string]interface{} {
-	config, _ := u.UnmarshalYaml(yamlFile)
+	config, _ := unitools.UnmarshalYaml(yamlFile)
 	processedConfig := u.ProcessConfig(config, currentSourceName)
 	return processedConfig
 }

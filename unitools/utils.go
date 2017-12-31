@@ -23,6 +23,7 @@ import (
 	"os"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4"
+	"github.com/ghodss/yaml"
 )
 
 func ExecCommandString(cmd string) {
@@ -105,3 +106,14 @@ func GitClone(url, referenceName, path string, depth int, singleBranch bool) (er
 		return nil
 	}
 }
+
+func UnmarshalYaml(yamlFile []byte) (map[string]interface{}, error) {
+	y := make(map[string]interface{})
+	err := yaml.Unmarshal(yamlFile, &y)
+	if err != nil {
+		log.Panicf("UnmarshalYaml error: %v", err)
+		return nil, err
+	}
+	return y, nil
+}
+
