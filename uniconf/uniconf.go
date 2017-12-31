@@ -37,19 +37,14 @@ const (
 	appTempFilesPath       = ".unipipe_temp"
 	configFilesPath        = ".unipipe"
 	sourceMapElementName   = "sources"
-	IncludeListElementName = "from"
+	includeListElementName = "from"
 	sourcesStoragePath     = "sources"
 	mainConfigFileName     = "config.yaml"
 	includesPath           = "scenarios"
 	configEnvVarName       = "UNIPIPE_CONFIG"
 )
 
-const (
-	refPrefix     = "refs/"
-	refHeadPrefix = refPrefix + "heads/"
-	//refTagPrefix    = refPrefix + "tags/"
-)
-
+// Init initializes uniconf.
 func init() {
 	u = New()
 	u.Load()
@@ -177,7 +172,7 @@ func (u *Uniconf) ProcessIncludes(config map[string]interface{}, currentSourceNa
 	return includesConfig
 }
 
-func (u *Uniconf) ProcessConfig(config map[string]interface{}, currentSourceName string) (map[string]interface{}) {
+func (u *Uniconf) ProcessConfig(config map[string]interface{}, currentSourceName string) map[string]interface{} {
 	u.ProcessSources(config)
 	includesConfig := u.ProcessIncludes(config, currentSourceName)
 	return unitools.Merge(includesConfig, config)
@@ -197,8 +192,8 @@ func (u *Uniconf) SetConfigFile(in string) {
 	}
 }
 
-func Yaml() (yamlString string) { return u.Yaml() }
-func (u *Uniconf) Yaml() (yamlString string) {
+func GetYaml() (yamlString string) { return u.GetYaml() }
+func (u *Uniconf) GetYaml() (yamlString string) {
 	y, err := yaml.Marshal(u.config)
 	if err != nil {
 		log.Fatalf("Err: %v\n", err)
@@ -207,7 +202,8 @@ func (u *Uniconf) Yaml() (yamlString string) {
 	return "---\n" + string(y)
 }
 
-func (u *Uniconf) Json() (jsonString string) {
+func GetJson() (yamlString string) { return u.GetJson() }
+func (u *Uniconf) GetJson() (jsonString string) {
 	y, err := json.Marshal(u)
 	if err != nil {
 		log.Fatalf("Err: %v\n", err)
