@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"github.com/aroq/uniconf/unitools"
 	"github.com/ghodss/yaml"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -62,14 +61,6 @@ func New() *Uniconf {
 	u.configFile = path.Join(configFilesPath, mainConfigFileName)
 
 	return u
-}
-
-func (u *Uniconf) ReadFile(filename string) []byte {
-	f, err := ioutil.ReadFile(filename)
-	if err != nil {
-		log.Panicf("ReadFile error: %v ", err)
-	}
-	return f
 }
 
 func (u *Uniconf) RegisterSource(name string, sourceMap map[string]interface{}) {
@@ -150,7 +141,7 @@ func (u *Uniconf) ProcessIncludes(config map[string]interface{}, currentSourceNa
 
 			for _, f := range includeFileNamesToCheck {
 				if _, err := os.Stat(f); err == nil {
-					includeConfig := u.LoadConfig(u.ReadFile(f), sourceName)
+					includeConfig := u.LoadConfig(unitools.ReadFile(f), sourceName)
 					unitools.Merge(includesConfig, includeConfig)
 				}
 			}
@@ -182,7 +173,7 @@ func (u *Uniconf) Load() {
 		os.RemoveAll(appTempFilesPath)
 
 		log.Printf("Processing file: %v", u.configFile)
-		yamlFile := u.ReadFile(u.configFile)
+		yamlFile := unitools.ReadFile(u.configFile)
 
 		if envConfig, err := unitools.UnmarshalEnvVarJson(configEnvVarName); err == nil {
 			u.loadedSources["env"] = Source{Path: "."}

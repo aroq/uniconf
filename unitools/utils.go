@@ -25,6 +25,7 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"github.com/ghodss/yaml"
 	"encoding/json"
+	"io/ioutil"
 )
 
 func ExecCommandString(cmd string) {
@@ -86,6 +87,15 @@ func Merge(dst, src map[string]interface{}) map[string]interface{} {
 	}
 	return dst
 }
+
+func ReadFile(filename string) []byte {
+	f, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Panicf("ReadFile error: %v ", err)
+	}
+	return f
+}
+
 
 func GitClone(url, referenceName, path string, depth int, singleBranch bool) (error) {
 	log.Println("Try to clone without 'git' command...")
