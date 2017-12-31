@@ -52,6 +52,7 @@ const (
 
 func init() {
 	u = New()
+	u.Load()
 }
 
 // New returns an initialized Uniconf instance.
@@ -62,6 +63,32 @@ func New() *Uniconf {
 
 	return u
 }
+
+func (u *Uniconf) Load() {
+	if len(u.config) == 0 {
+		u.registeredSources = make(map[string]Source)
+		u.registeredSources["."] = Source{Path: "."}
+		u.loadedSources = make(map[string]Source)
+		u.loadedSources["."] = Source{Path: "."}
+
+		// TODO: check if this is needed.
+		os.RemoveAll(appTempFilesPath)
+
+		log.Printf("Processing file: %v", u.configFile)
+		yamlFile := unitools.ReadFile(u.configFile)
+
+		if envConfig, err := unitools.UnmarshalEnvVarJson(configEnvVarName); err == nil {
+			u.loadedSources["env"] = Source{Path: "."}
+			processedEnvConfig := u.ProcessConfig(envConfig, "env")
+			unitools.Merge(u.config, processedEnvConfig)
+		}
+
+		projectConfig := u.LoadConfig(yamlFile, ".")
+		unitools.Merge(projectConfig, u.config)
+		u.config = projectConfig
+	}
+}
+
 
 func (u *Uniconf) RegisterSource(name string, sourceMap map[string]interface{}) {
 	source := NewSource(name, sourceMap)
@@ -162,31 +189,6 @@ func (u *Uniconf) LoadConfig(yamlFile []byte, currentSourceName string) map[stri
 	return processedConfig
 }
 
-func (u *Uniconf) Load() {
-	if len(u.config) == 0 {
-		u.registeredSources = make(map[string]Source)
-		u.registeredSources["."] = Source{Path: "."}
-		u.loadedSources = make(map[string]Source)
-		u.loadedSources["."] = Source{Path: "."}
-
-		// TODO: check if this is needed.
-		os.RemoveAll(appTempFilesPath)
-
-		log.Printf("Processing file: %v", u.configFile)
-		yamlFile := unitools.ReadFile(u.configFile)
-
-		if envConfig, err := unitools.UnmarshalEnvVarJson(configEnvVarName); err == nil {
-			u.loadedSources["env"] = Source{Path: "."}
-			processedEnvConfig := u.ProcessConfig(envConfig, "env")
-			unitools.Merge(u.config, processedEnvConfig)
-		}
-
-		projectConfig := u.LoadConfig(yamlFile, ".")
-		unitools.Merge(projectConfig, u.config)
-		u.config = projectConfig
-	}
-}
-
 // SetConfigFile explicitly defines the path, name and extension of the uniconf file.
 func SetConfigFile(in string) { u.SetConfigFile(in) }
 func (u *Uniconf) SetConfigFile(in string) {
@@ -197,7 +199,6 @@ func (u *Uniconf) SetConfigFile(in string) {
 
 func Yaml() (yamlString string) { return u.Yaml() }
 func (u *Uniconf) Yaml() (yamlString string) {
-	u.Load()
 	y, err := yaml.Marshal(u.config)
 	if err != nil {
 		log.Fatalf("Err: %v\n", err)
@@ -207,7 +208,6 @@ func (u *Uniconf) Yaml() (yamlString string) {
 }
 
 func (u *Uniconf) Json() (jsonString string) {
-	u.Load()
 	y, err := json.Marshal(u)
 	if err != nil {
 		log.Fatalf("Err: %v\n", err)
