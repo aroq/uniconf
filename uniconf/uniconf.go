@@ -115,18 +115,6 @@ func (u *Uniconf) LoadSource(name string) *Source {
 	}
 }
 
-func (u *Uniconf) LoadEnvConfig() (map[string]interface{}, error) {
-	envConfigString := os.Getenv(configEnvVarName)
-	if envConfigString != "" {
-		var envConfig map[string]interface{}
-		json.Unmarshal([]byte(envConfigString), &envConfig)
-		return envConfig, nil
-	} else {
-		// TODO: Provide error message.
-		return nil, nil
-	}
-}
-
 func (u *Uniconf) ProcessSources(config map[string]interface{}) {
 	if sources, ok := config[sourceMapElementName].(map[string]interface{}); ok {
 		u.RegisterSources(sources)
@@ -196,7 +184,7 @@ func (u *Uniconf) Load() {
 		log.Printf("Processing file: %v", u.configFile)
 		yamlFile := u.ReadFile(u.configFile)
 
-		if envConfig, err := u.LoadEnvConfig(); err == nil {
+		if envConfig, err := unitools.UnmarshalEnvVarJson(configEnvVarName); err == nil {
 			u.loadedSources["env"] = Source{Path: "."}
 			processedConfig := u.ProcessConfig(envConfig, "env")
 			unitools.Merge(u.config, processedConfig)

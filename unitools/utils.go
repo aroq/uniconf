@@ -24,6 +24,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4"
 	"github.com/ghodss/yaml"
+	"encoding/json"
 )
 
 func ExecCommandString(cmd string) {
@@ -116,4 +117,17 @@ func UnmarshalYaml(yamlFile []byte) (map[string]interface{}, error) {
 	}
 	return y, nil
 }
+
+func UnmarshalEnvVarJson(varName string) (map[string]interface{}, error) {
+	envConfigString := os.Getenv(varName)
+	if envConfigString != "" {
+		var envConfig map[string]interface{}
+		json.Unmarshal([]byte(envConfigString), &envConfig)
+		return envConfig, nil
+	} else {
+		// TODO: Provide error message.
+		return nil, nil
+	}
+}
+
 
