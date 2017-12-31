@@ -87,14 +87,6 @@ func (u *Uniconf) RegisterSource(name string, sourceMap map[string]interface{}) 
 	u.sources[name] = source
 }
 
-func (u *Uniconf) GetSource(name string) *Source {
-	if source, ok := u.sources[name]; ok {
-		return source
-	} else {
-		return nil
-	}
-}
-
 func (u *Uniconf) RegisterSources(sources map[string]interface{}) {
 	for k, v := range sources {
 		log.Printf("Processing source: %s\n", k)
@@ -107,13 +99,12 @@ func (u *Uniconf) RegisterSources(sources map[string]interface{}) {
 	}
 }
 
-func (u *Uniconf) LoadSource(name string) *Source {
-	source := u.GetSource(name)
-	if source != nil {
+func (u *Uniconf) GetSource(name string) *Source {
+	if source, ok := u.sources[name]; ok {
 		if !source.isLoaded {
 			err := source.LoadSource()
 			if err != nil {
-				log.Fatalf("Source: %s was not loaded because of source.LoadSource() error: %v", name, err)
+				log.Fatalf("Source: %s was not loaded because of source.GetSource() error: %v", name, err)
 			}
 		}
 		return source
@@ -147,7 +138,7 @@ func (u *Uniconf) ProcessIncludes(config map[string]interface{}, currentSourceNa
 				include = path.Join(includesPath, include)
 			}
 
-			source := u.LoadSource(sourceName)
+			source := u.GetSource(sourceName)
 
 			var includeFileNamesToCheck []string
 			includeFileName := path.Join(source.Path, include)
