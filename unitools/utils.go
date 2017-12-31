@@ -20,6 +20,9 @@ import (
 	"log"
 	"os/exec"
 	"strings"
+	"os"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4"
 )
 
 func ExecCommandString(cmd string) {
@@ -80,4 +83,25 @@ func Merge(dst, src map[string]interface{}) map[string]interface{} {
 		}
 	}
 	return dst
+}
+
+func GitClone(url, referenceName, path string, depth int, singleBranch bool) (error) {
+	log.Println("Try to clone without 'git' command...")
+	_, err := git.PlainClone(path, false, &git.CloneOptions{
+		URL:           url,
+		Progress:      os.Stdout,
+		SingleBranch:  singleBranch,
+		Depth:         depth,
+		ReferenceName: plumbing.ReferenceName(referenceName),
+	})
+	if err != nil {
+		log.Printf("Error: %s\n", err)
+
+		// TODO: Recheck this part.
+		//log.Println("Try to clone with 'git' command execution...")
+		//unitools.ExecCommandString(fmt.Sprintf("git clone --depth=1 -b %s %s %s", ref, source.Repo, sourcePath))
+		return err
+	} else {
+		return nil
+	}
 }
