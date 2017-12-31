@@ -203,8 +203,7 @@ func (u *Uniconf) Yaml() (yamlString string) {
 		log.Fatalf("Err: %v\n", err)
 
 	}
-	yamlString = string(y)
-	return "---\n" + yamlString
+	return "---\n" + string(y)
 }
 
 func (u *Uniconf) Json() (jsonString string) {
@@ -214,6 +213,5 @@ func (u *Uniconf) Json() (jsonString string) {
 		log.Fatalf("Err: %v\n", err)
 
 	}
-	jsonString = string(y)
-	return jsonString
+	return string(y)
 }
