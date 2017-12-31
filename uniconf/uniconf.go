@@ -138,6 +138,12 @@ func (u *Uniconf) LoadEnvConfig() (map[string]interface{}, error) {
 	}
 }
 
+func (u *Uniconf) ProcessSources(config map[string]interface{}) {
+	if sources, ok := config[sourceMapElementName].(map[string]interface{}); ok {
+		u.RegisterSources(sources)
+	}
+}
+
 func (u *Uniconf) ProcessIncludes(config map[string]interface{}, currentSourceName string) (map[string]interface{}) {
 	includesConfig := make(map[string]interface{})
 
@@ -177,9 +183,7 @@ func (u *Uniconf) ProcessIncludes(config map[string]interface{}, currentSourceNa
 }
 
 func (u *Uniconf) ProcessConfig(config map[string]interface{}, currentSourceName string) (map[string]interface{}) {
-	if sources, ok := config[sourceMapElementName].(map[string]interface{}); ok {
-		u.RegisterSources(sources)
-	}
+	u.ProcessSources(config)
 	includesConfig := u.ProcessIncludes(config, currentSourceName)
 	return unitools.Merge(includesConfig, config)
 }
