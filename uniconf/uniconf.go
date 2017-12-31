@@ -25,10 +25,9 @@ import (
 )
 
 type Uniconf struct {
-	config            map[string]interface{}
-	configFile        string
-	registeredSources map[string]Source
-	loadedSources     map[string]Source
+	config        map[string]interface{}
+	configFile    string
+	sources       map[string]*Source
 }
 
 var u *Uniconf
@@ -59,12 +58,11 @@ func New() *Uniconf {
 	return u
 }
 
+// Load loads and processes configuration.
 func (u *Uniconf) Load() {
 	if len(u.config) == 0 {
-		u.registeredSources = make(map[string]Source)
-		u.registeredSources["."] = Source{Path: "."}
-		u.loadedSources = make(map[string]Source)
-		u.loadedSources["."] = Source{Path: "."}
+		u.sources = make(map[string]*Source)
+		u.sources["."] = &Source{Path: ".", isLoaded: true}
 
 		// TODO: check if this is needed.
 		os.RemoveAll(appTempFilesPath)
@@ -73,7 +71,7 @@ func (u *Uniconf) Load() {
 		yamlFile := unitools.ReadFile(u.configFile)
 
 		if envConfig, err := unitools.UnmarshalEnvVarJson(configEnvVarName); err == nil {
-			u.loadedSources["env"] = Source{Path: "."}
+			u.sources["env"] = &Source{Path: ".", isLoaded: true}
 			processedEnvConfig := u.ProcessConfig(envConfig, "env")
 			unitools.Merge(u.config, processedEnvConfig)
 		}
@@ -84,15 +82,14 @@ func (u *Uniconf) Load() {
 	}
 }
 
-
 func (u *Uniconf) RegisterSource(name string, sourceMap map[string]interface{}) {
 	source := NewSource(name, sourceMap)
-	u.registeredSources[name] = *source
+	u.sources[name] = source
 }
 
 func (u *Uniconf) GetSource(name string) *Source {
-	if source, ok := u.registeredSources[name]; ok {
-		return &source
+	if source, ok := u.sources[name]; ok {
+		return source
 	} else {
 		return nil
 	}
@@ -101,7 +98,7 @@ func (u *Uniconf) GetSource(name string) *Source {
 func (u *Uniconf) RegisterSources(sources map[string]interface{}) {
 	for k, v := range sources {
 		log.Printf("Processing source: %s\n", k)
-		if _, ok := u.registeredSources[k]; !ok {
+		if _, ok := u.sources[k]; !ok {
 			log.Printf("Source is not loaded: %s\n", k)
 			u.RegisterSource(k, v.(map[string]interface{}))
 		} else {
@@ -113,12 +110,10 @@ func (u *Uniconf) RegisterSources(sources map[string]interface{}) {
 func (u *Uniconf) LoadSource(name string) *Source {
 	source := u.GetSource(name)
 	if source != nil {
-		if _, ok := u.loadedSources[name]; !ok {
+		if !source.isLoaded {
 			err := source.LoadSource()
 			if err != nil {
 				log.Fatalf("Source: %s was not loaded because of source.LoadSource() error: %v", name, err)
-			} else {
-				u.loadedSources[name] = *source
 			}
 		}
 		return source
@@ -134,10 +129,10 @@ func (u *Uniconf) ProcessSources(config map[string]interface{}) {
 	}
 }
 
-func (u *Uniconf) ProcessIncludes(config map[string]interface{}, currentSourceName string) (map[string]interface{}) {
+func (u *Uniconf) ProcessIncludes(config map[string]interface{}, currentSourceName string) map[string]interface{} {
 	includesConfig := make(map[string]interface{})
 
-	if includes, ok := config[IncludeListElementName]; ok {
+	if includes, ok := config[includeListElementName]; ok {
 		for _, include := range includes.([]interface{}) {
 			scenario := include.(string)
 			log.Printf("Processing include: %s", scenario)

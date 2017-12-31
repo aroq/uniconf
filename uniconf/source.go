@@ -1,20 +1,31 @@
 package uniconf
 
 import (
-	"path"
 	"github.com/aroq/uniconf/unitools"
+	"path"
 )
 
 type Source struct {
-	Repo         string
-	Ref          string
-	RefPrefix    string
-	Path         string
+	Repo      string
+	Ref       string
+	RefPrefix string
+	Path      string
+	isLoaded  bool
 }
+
+const (
+	refPrefix     = "refs/"
+	refHeadPrefix = refPrefix + "heads/"
+	//refTagPrefix    = refPrefix + "tags/"
+)
 
 func (s *Source) LoadSource() error {
 	//log.Printf("Cloning source repo: %s, ref: %s\n", s.Repo, s.Ref)
-	return unitools.GitClone(s.Repo, s.RefPrefix + s.Ref, s.Path, 1, true)
+	err := unitools.GitClone(s.Repo, s.RefPrefix+s.Ref, s.Path, 1, true)
+	if err == nil {
+		s.isLoaded = true
+	}
+	return err
 }
 
 func NewSource(sourceName string, sourceMap map[string]interface{}) *Source {
@@ -29,5 +40,5 @@ func NewSource(sourceName string, sourceMap map[string]interface{}) *Source {
 	if !ok {
 		prefix = refHeadPrefix
 	}
-	return &Source{Path: path, Repo: sourceMap["repo"].(string), Ref: ref, RefPrefix: prefix.(string)}
+	return &Source{Path: path, Repo: sourceMap["repo"].(string), Ref: ref, RefPrefix: prefix.(string), isLoaded: false}
 }
