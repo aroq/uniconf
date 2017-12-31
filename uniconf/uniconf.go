@@ -67,7 +67,7 @@ func (u *Uniconf) Load() {
 		// TODO: check if this is needed.
 		os.RemoveAll(appTempFilesPath)
 
-		log.Printf("Processing file: %v", u.configFile)
+		log.Printf("Process file: %v", u.configFile)
 		yamlFile := unitools.ReadFile(u.configFile)
 
 		if envConfig, err := unitools.UnmarshalEnvVarJson(configEnvVarName); err == nil {
@@ -100,9 +100,8 @@ func (u *Uniconf) GetSource(name string) *Source {
 func (u *Uniconf) ProcessSources(config map[string]interface{}) {
 	if sources, ok := config[sourceMapElementName].(map[string]interface{}); ok {
 		for k, v := range sources {
-			log.Printf("Processing source: %s\n", k)
+			log.Printf("Process source: %s", k)
 			if _, ok := u.sources[k]; !ok {
-				log.Printf("Source is not loaded: %s\n", k)
 				source := NewSource(k, v.(map[string]interface{}))
 				u.sources[k] = source
 			} else {
@@ -118,7 +117,7 @@ func (u *Uniconf) ProcessIncludes(config map[string]interface{}, currentSourceNa
 	if includes, ok := config[includeListElementName]; ok {
 		for _, include := range includes.([]interface{}) {
 			scenario := include.(string)
-			log.Printf("Processing include: %s", scenario)
+			log.Printf("Process include: %s", scenario)
 			sourceName, include := "", ""
 			if strings.Contains(scenario, ":") {
 				s := strings.Split(scenario, ":")
@@ -174,7 +173,7 @@ func GetYaml() (yamlString string) { return u.GetYaml() }
 func (u *Uniconf) GetYaml() (yamlString string) {
 	y, err := yaml.Marshal(u.config)
 	if err != nil {
-		log.Fatalf("Err: %v\n", err)
+		log.Fatalf("Err: %v", err)
 
 	}
 	return "---\n" + string(y)
@@ -184,7 +183,7 @@ func GetJson() (yamlString string) { return u.GetJson() }
 func (u *Uniconf) GetJson() (jsonString string) {
 	y, err := json.Marshal(u)
 	if err != nil {
-		log.Fatalf("Err: %v\n", err)
+		log.Fatalf("Err: %v", err)
 
 	}
 	return string(y)

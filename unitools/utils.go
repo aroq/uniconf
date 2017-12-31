@@ -26,6 +26,7 @@ import (
 	"github.com/ghodss/yaml"
 	"encoding/json"
 	"io/ioutil"
+	"path/filepath"
 )
 
 func ExecCommandString(cmd string) {
@@ -37,7 +38,7 @@ func ExecCommandString(cmd string) {
 
 	out, err := exec.Command(head, parts...).Output()
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
+		log.Fatalf("Error: %s", err)
 	}
 	fmt.Printf("%s\n", out)
 }
@@ -48,7 +49,7 @@ func ExecCommand(name string, arg ...string) {
 	} else {
 		out, err := exec.Command(name, arg...).Output()
 		if err != nil {
-			fmt.Printf("%s", err)
+			log.Fatalf("%s", err)
 		}
 		fmt.Printf("%s", out)
 	}
@@ -98,7 +99,8 @@ func ReadFile(filename string) []byte {
 
 
 func GitClone(url, referenceName, path string, depth int, singleBranch bool) (error) {
-	log.Println("Try to clone without 'git' command...")
+	log.Printf("Clone repo: %s", url)
+	oldStdout, oldStderr := disableStdStreams(true, false)
 	_, err := git.PlainClone(path, false, &git.CloneOptions{
 		URL:           url,
 		Progress:      os.Stdout,
@@ -106,8 +108,9 @@ func GitClone(url, referenceName, path string, depth int, singleBranch bool) (er
 		Depth:         depth,
 		ReferenceName: plumbing.ReferenceName(referenceName),
 	})
+	enableStdStreams(oldStdout, oldStderr)
 	if err != nil {
-		log.Printf("Error: %s\n", err)
+		log.Printf("Error: %s", err)
 
 		// TODO: Recheck this part.
 		//log.Println("Try to clone with 'git' command execution...")
@@ -116,6 +119,28 @@ func GitClone(url, referenceName, path string, depth int, singleBranch bool) (er
 	} else {
 		return nil
 	}
+}
+
+func disableStdStreams(disableStdout, disableStderr bool) (oldStdout, oldStderr *os.File) {
+	if disableStdout {
+		oldStdout = os.Stdout
+		stdoutFile := filepath.Join(os.TempDir(), "unitools_stdout")
+		temp, _ := os.Create(stdoutFile)
+		os.Stdout = temp
+	}
+	if disableStderr {
+		oldStderr = os.Stderr
+		stderrFile := filepath.Join(os.TempDir(), "unitools_stderr")
+		temp2, _ := os.Create(stderrFile)
+		os.Stderr = temp2
+	}
+	return
+}
+
+func enableStdStreams(oldStdout, oldStderr *os.File) {
+	// Restore all stdout & stderr output.
+	os.Stdout = oldStdout
+	os.Stderr = oldStderr
 }
 
 func UnmarshalYaml(yamlFile []byte) (map[string]interface{}, error) {
