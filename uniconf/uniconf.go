@@ -170,7 +170,7 @@ func (u *Uniconf) SetConfigFile(in string) {
 }
 
 func GetYaml() (yamlString string) { return u.GetYaml() }
-func (u *Uniconf) GetYaml() (yamlString string) {
+func (u *Uniconf) GetYaml() (string) {
 	y, err := yaml.Marshal(u.config)
 	if err != nil {
 		log.Fatalf("Err: %v", err)
@@ -180,8 +180,8 @@ func (u *Uniconf) GetYaml() (yamlString string) {
 }
 
 func GetJson() (yamlString string) { return u.GetJson() }
-func (u *Uniconf) GetJson() (jsonString string) {
-	y, err := json.Marshal(u)
+func (u *Uniconf) GetJson() (string) {
+	y, err := json.Marshal(u.config)
 	if err != nil {
 		log.Fatalf("Err: %v", err)
 

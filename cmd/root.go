@@ -18,14 +18,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/aroq/uniconf/uniconf"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/aroq/uniconf/uniconf"
 	"log"
 )
 
 var cfgFile string
+
+var outputFormat string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -37,8 +39,13 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-    Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(uniconf.GetYaml())
+	Run: func(cmd *cobra.Command, args []string) {
+		if outputFormat == "yaml" {
+			fmt.Println(uniconf.GetYaml())
+		}
+		if outputFormat == "json" {
+			fmt.Println(uniconf.GetJson())
+		}
 	},
 }
 
@@ -58,6 +65,8 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "uniconf", "", "uniconf file (default is $HOME/.uniconf.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "yaml", "output format, e.g. 'yaml' or 'json' ('yaml' by default)")
+	viper.BindPFlag("output", rootCmd.PersistentFlags().Lookup("output"))
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
