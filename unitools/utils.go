@@ -114,7 +114,7 @@ func GitClone(url, referenceName, path string, depth int, singleBranch bool) (er
 
 		// TODO: Recheck this part.
 		//log.Println("Try to clone with 'git' command execution...")
-		//unitools.ExecCommandString(fmt.Sprintf("git clone --depth=1 -b %s %s %s", ref, source.Repo, sourcePath))
+		//unitools.ExecCommandString(fmt.Sprintf("git clone --depth=1 -b %s %s %s", ref, source.repo, sourcePath))
 		return err
 	} else {
 		return nil
