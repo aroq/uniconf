@@ -67,7 +67,7 @@ func (u *Uniconf) Load() {
 		// TODO: check if this is needed.
 		os.RemoveAll(appTempFilesPath)
 
-		log.Printf("Processing file: %v", u.configFile)
+		log.Printf("Process file: %v", u.configFile)
 		yamlFile := unitools.ReadFile(u.configFile)
 
 		if envConfig, err := unitools.UnmarshalEnvVarJson(configEnvVarName); err == nil {
@@ -100,7 +100,7 @@ func (u *Uniconf) GetSource(name string) *Source {
 func (u *Uniconf) ProcessSources(config map[string]interface{}) {
 	if sources, ok := config[sourceMapElementName].(map[string]interface{}); ok {
 		for k, v := range sources {
-			log.Printf("Processing source: %s", k)
+			log.Printf("Process source: %s", k)
 			if _, ok := u.sources[k]; !ok {
 				source := NewSource(k, v.(map[string]interface{}))
 				u.sources[k] = source
@@ -117,7 +117,7 @@ func (u *Uniconf) ProcessIncludes(config map[string]interface{}, currentSourceNa
 	if includes, ok := config[includeListElementName]; ok {
 		for _, include := range includes.([]interface{}) {
 			scenario := include.(string)
-			log.Printf("Processing include: %s", scenario)
+			log.Printf("Process include: %s", scenario)
 			sourceName, include := "", ""
 			if strings.Contains(scenario, ":") {
 				s := strings.Split(scenario, ":")

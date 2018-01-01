@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/aroq/uniconf/uniconf"
+	"log"
 )
 
 var cfgFile string
@@ -36,11 +37,8 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
     Run: func(cmd *cobra.Command, args []string) {
-		yamlConfig := uniconf.GetYaml()
-		fmt.Println(yamlConfig)
+		fmt.Println(uniconf.GetYaml())
 	},
 }
 
@@ -48,7 +46,7 @@ to quickly create a Cobra application.`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		os.Exit(1)
 	}
 }
@@ -76,7 +74,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 			os.Exit(1)
 		}
 
@@ -89,6 +87,6 @@ func initConfig() {
 
 	// If a uniconf file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using uniconf file:", viper.ConfigFileUsed())
+		log.Println("Using uniconf file:", viper.ConfigFileUsed())
 	}
 }

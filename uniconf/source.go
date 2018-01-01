@@ -20,7 +20,6 @@ const (
 )
 
 func (s *Source) LoadSource() error {
-	//log.Printf("Cloning source repo: %s, ref: %s\n", s.Repo, s.Ref)
 	err := unitools.GitClone(s.Repo, s.RefPrefix+s.Ref, s.Path, 1, true)
 	if err == nil {
 		s.isLoaded = true
