@@ -40,28 +40,37 @@ func (c *ConfigEntity) getHistoryChain() string {
 }
 
 func (c *ConfigEntity) saveHistory(path string, config map[string]interface{}) {
+	saver := func(historyKey string, v interface{}) {
+		if _, ok := c.history[historyKey]; !ok {
+			c.history[historyKey] = make(map[string]interface{})
+			c.history[historyKey].(map[string]interface{})["load"] = make(map[string]interface{})
+			c.history[historyKey].(map[string]interface{})["order"] = make([]string, 0)
+		}
+		if v == nil {
+			v = "..."
+		}
+		newEntry := map[string]interface{}{c.source.Name() + ":" + c.id: v}
+		c.history[historyKey].(map[string]interface{})["load"] = unitool.Merge(c.history[historyKey].(map[string]interface{})["load"], newEntry)
+		history := c.getHistoryChain()
+		c.history[historyKey].(map[string]interface{})["order"] = append(c.history[historyKey].(map[string]interface{})["order"].([]string), history)
+	}
+
 	for k, v := range config {
 		historyKey := strings.Trim(strings.Join([]string{path, k}, "."), ".")
 		switch v.(type) {
 		case map[string]interface{}:
+			saver(historyKey, nil)
 			c.saveHistory(historyKey, v.(map[string]interface{}))
 		case []interface{}:
 			for lk, lv := range v.([]interface{}) {
 				switch lv.(type) {
 				case map[string]interface{}:
+					saver(historyKey, nil)
 					c.saveHistory(historyKey+"["+strconv.Itoa(lk)+"]", lv.(map[string]interface{}))
 				}
 			}
 		case string, int, bool:
-			if _, ok := c.history[historyKey]; !ok {
-				c.history[historyKey] = make(map[string]interface{})
-				c.history[historyKey].(map[string]interface{})["load"] = make(map[string]interface{})
-				c.history[historyKey].(map[string]interface{})["order"] = make([]string, 0)
-			}
-			newEntry := map[string]interface{}{c.source.Name() + ":" + c.id: v}
-			c.history[historyKey].(map[string]interface{})["load"] = unitool.Merge(c.history[historyKey].(map[string]interface{})["load"], newEntry)
-			history := c.getHistoryChain()
-			c.history[historyKey].(map[string]interface{})["order"] = append(c.history[historyKey].(map[string]interface{})["order"].([]string), history)
+			saver(historyKey, v)
 		}
 	}
 }

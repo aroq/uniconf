@@ -48,6 +48,7 @@ func init() {
 	//log.SetLevel(log.WarnLevel)
 	u = New()
 	u.load(u.defaultConfig())
+	//u.process()
 }
 
 // New returns an initialized Uniconf instance.
@@ -116,7 +117,7 @@ func (u *Uniconf) defaultConfig() []map[string]interface{} {
 }
 
 // process processes configuration.
-func (u *Uniconf) process() {
+func (u *Uniconf) process(source interface{}, path, phase string) {
 	processors := []map[string]interface{}{
 		{
 			"id":          "fromProcessor",
@@ -125,12 +126,12 @@ func (u *Uniconf) process() {
 	}
 	for i := 0; i < len(processors); i++ {
 		if processors[i]["id"] == "fromProcessor" {
-			u.fromProcess(u.config["jobs"], "jobs", "config")
+			u.fromProcess(source, path, phase)
 		}
 	}
 }
 
-func (u *Uniconf) fromProcess(source interface{}, path, mode string) {
+func (u *Uniconf) fromProcess(source interface{}, path, phase string) {
 	processFromFunc := func(from string) (processed bool) {
 		processed = false
 		processorParams, err := unitool.CollectKeyParamsFromJsonPath(u.config, from, "processors")
@@ -141,12 +142,12 @@ func (u *Uniconf) fromProcess(source interface{}, path, mode string) {
 			fromMode := unitool.SearchMapWithPathStringPrefixes(processorParams, "from.mode")
 			if fromMode != nil {
 				modeParam := fromMode.(string)
-				if modeParam != "" && modeParam == mode {
+				if modeParam != "" && modeParam == phase {
 					result, err := unitool.CollectKeyParamsFromJsonPath(u.config, from, "params")
 					if err != nil {
 						log.Errorf("Error: %v", err)
 					}
-					u.fromProcess(result, path, mode)
+					u.fromProcess(result, path, phase)
 					unitool.Merge(source.(map[string]interface{}), result)
 					processed = true
 				}
@@ -160,7 +161,7 @@ func (u *Uniconf) fromProcess(source interface{}, path, mode string) {
 		for k, v := range source.(map[string]interface{}) {
 			switch v.(type) {
 			case map[string]interface{}:
-				u.fromProcess(v, strings.Join([]string{path, k}, "."), mode)
+				u.fromProcess(v, strings.Join([]string{path, k}, "."), phase)
 			case string:
 				if k == "from" {
 					processed := processFromFunc(v.(string))
@@ -179,7 +180,7 @@ func (u *Uniconf) fromProcess(source interface{}, path, mode string) {
 							processed = true
 						}
 					} else {
-						u.fromProcess(l[i], strings.Join([]string{path, k}, "."), mode)
+						u.fromProcess(l[i], strings.Join([]string{path, k}, "."), phase)
 					}
 				}
 				if processed {
@@ -219,15 +220,12 @@ func (u *Uniconf) explain(jsonPath, key string) {
 	fmt.Println("Result:")
 	fmt.Println(unitool.MarshallYaml(result))
 
-	fmt.Println("Collect result:")
-	fmt.Println(u.collect(jsonPath, key))
-
-	if history, ok := u.config["merge_history"].(map[string][]string)[jsonPath]; ok {
-		fmt.Println("Merge history:")
-		fmt.Println(history)
+	if history, ok := u.config["history"].(map[string]interface{})[strings.Trim(jsonPath, ".")]; ok {
+		fmt.Println("Load history:")
+		fmt.Println(unitool.MarshallYaml(history))
 	}
 
-	u.fromProcess(result, "", "config")
+	u.process(result, "", "config")
 	fmt.Println("From processed result:")
 	fmt.Println(unitool.MarshallYaml(result))
 }
