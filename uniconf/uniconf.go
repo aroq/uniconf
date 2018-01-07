@@ -15,18 +15,19 @@
 package uniconf
 
 import (
-	"encoding/json"
-	"github.com/aroq/uniconf/unitools"
-	"github.com/ghodss/yaml"
+	"fmt"
+	"github.com/aroq/uniconf/unitool"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"path"
+	"strings"
 )
 
 type Uniconf struct {
 	config     map[string]interface{}
 	configFile string
-	sources    map[string]*Source
+	sources    map[string]SourceHandler
+	history    map[string]interface{}
 }
 
 var u *Uniconf
@@ -44,46 +45,156 @@ const (
 
 // Init initializes uniconf.
 func init() {
+	//log.SetLevel(log.WarnLevel)
 	u = New()
-	u.load()
+	u.load(u.defaultConfig())
 }
 
 // New returns an initialized Uniconf instance.
 func New() *Uniconf {
 	u := new(Uniconf)
 	u.config = make(map[string]interface{})
+	u.history = make(map[string]interface{})
 	u.configFile = path.Join(configFilesPath, mainConfigFileName)
-
+	u.sources = make(map[string]SourceHandler)
 	return u
 }
 
-// load loads and processes configuration.
-func (u *Uniconf) load() {
+// load loads configuration.
+func (u *Uniconf) load(defaultConfig []map[string]interface{}) {
 	if len(u.config) == 0 {
-		u.sources = make(map[string]*Source)
-
-		source := &Source{name: "uniconf", path: "", isLoaded: true}
-		u.sources["uniconf"] = source
-
 		// TODO: check if this is needed.
 		os.RemoveAll(appTempFilesPath)
 
-		// TODO: refactor to provide settings from outside the app.
-		loaders := []map[string]interface{}{
-			{"name": configEnvVarName, "configType": "env_var", "source": source, "id": configEnvVarName, "format": "json"},
-			{"name": u.configFile, "configType": "file", "source": source, "id": u.configFile, "format": "yaml"},
-		}
-		for i := 0; i < len(loaders); i++ {
-			c1 := loadConfigEntity(loaders[i])
-			unitools.Merge(u.config, c1.config)
-		}
+		for i := 0; i < len(defaultConfig); i++ {
+			sourceName := defaultConfig[i]["sourceName"].(string)
+			sourceType := defaultConfig[i]["sourceType"].(string)
 
+			if sourceType == "env" {
+				u.sources[sourceName] = NewSourceEnv("env", nil)
+			}
+			if sourceType == "file" {
+				u.sources[sourceName] = NewSourceFile("project", map[string]interface{}{"path": "."})
+			}
+
+			for j := 0; j < len(defaultConfig[i]["configs"].([]map[string]interface{})); j++ {
+				if c, err := u.sources[sourceName].LoadConfigEntity(defaultConfig[i]["configs"].([]map[string]interface{})[j]); err == nil {
+					unitool.Merge(u.config, c.config)
+					unitool.Merge(u.history, c.history)
+				}
+			}
+		}
+		if len(u.history) > 0 {
+			u.config["history"] = u.history
+		}
 	}
 }
 
-func (u *Uniconf) getSource(name string) *Source {
+func (u *Uniconf) defaultConfig() []map[string]interface{} {
+	// TODO: refactor to provide settings from outside the app.
+
+	return []map[string]interface{}{
+		{
+			"sourceName": "env",
+			"sourceType": "env",
+			"configs": []map[string]interface{}{
+				{
+					"id": configEnvVarName,
+				},
+			},
+		},
+		{
+			"sourceName": "project",
+			"sourceType": "file",
+			"configs": []map[string]interface{}{
+				{
+					"id": u.configFile,
+				},
+			},
+		},
+	}
+}
+
+// process processes configuration.
+func (u *Uniconf) process() {
+	processors := []map[string]interface{}{
+		{
+			"id":          "fromProcessor",
+			"include_key": "from",
+		},
+	}
+	for i := 0; i < len(processors); i++ {
+		if processors[i]["id"] == "fromProcessor" {
+			u.fromProcess(u.config["jobs"], "jobs", "config")
+		}
+	}
+}
+
+func (u *Uniconf) fromProcess(source interface{}, path, mode string) {
+	processFromFunc := func(from string) (processed bool) {
+		processed = false
+		processorParams, err := unitool.CollectKeyParamsFromJsonPath(u.config, from, "processors")
+		if err != nil {
+			log.Errorf("Error: %v", err)
+		}
+		if processorParams != nil {
+			fromMode := unitool.SearchMapWithPathStringPrefixes(processorParams, "from.mode")
+			if fromMode != nil {
+				modeParam := fromMode.(string)
+				if modeParam != "" && modeParam == mode {
+					result, err := unitool.CollectKeyParamsFromJsonPath(u.config, from, "params")
+					if err != nil {
+						log.Errorf("Error: %v", err)
+					}
+					u.fromProcess(result, path, mode)
+					unitool.Merge(source.(map[string]interface{}), result)
+					processed = true
+				}
+			}
+		}
+		return
+	}
+
+	switch source.(type) {
+	case map[string]interface{}:
+		for k, v := range source.(map[string]interface{}) {
+			switch v.(type) {
+			case map[string]interface{}:
+				u.fromProcess(v, strings.Join([]string{path, k}, "."), mode)
+			case string:
+				if k == "from" {
+					processed := processFromFunc(v.(string))
+					if processed {
+						delete(source.(map[string]interface{}), "from")
+						source.(map[string]interface{})["from_processed"] = v
+					}
+				}
+			case []interface{}:
+				l := v.([]interface{})
+				processed := false
+				for i := 0; i < len(l); i++ {
+					if k == "from" {
+						p := processFromFunc(l[i].(string))
+						if p {
+							processed = true
+						}
+					} else {
+						u.fromProcess(l[i], strings.Join([]string{path, k}, "."), mode)
+					}
+				}
+				if processed {
+					delete(source.(map[string]interface{}), "from")
+					source.(map[string]interface{})["from_processed"] = v
+				}
+			}
+		}
+	}
+}
+
+func (u *Uniconf) getSource(name string) SourceHandler {
 	if source, ok := u.sources[name]; ok {
-		if !source.isLoaded {
+		if !source.IsLoaded() {
+			// Lazy load source.
 			err := source.LoadSource()
 			if err != nil {
 				log.Fatalf("Source: %s was not loaded because of source.getSource() error: %v", name, err)
@@ -96,6 +207,31 @@ func (u *Uniconf) getSource(name string) *Source {
 	}
 }
 
+func Collect(jsonPath, key string) string { return u.collect(jsonPath, key) }
+func (u *Uniconf) collect(jsonPath, key string) string {
+	result, _ := unitool.CollectKeyParamsFromJsonPath(u.config, jsonPath, key)
+	return unitool.MarshallYaml(result)
+}
+
+func Explain(jsonPath, key string) { u.explain(jsonPath, key) }
+func (u *Uniconf) explain(jsonPath, key string) {
+	result := unitool.SearchMapWithPathStringPrefixes(u.config, jsonPath)
+	fmt.Println("Result:")
+	fmt.Println(unitool.MarshallYaml(result))
+
+	fmt.Println("Collect result:")
+	fmt.Println(u.collect(jsonPath, key))
+
+	if history, ok := u.config["merge_history"].(map[string][]string)[jsonPath]; ok {
+		fmt.Println("Merge history:")
+		fmt.Println(history)
+	}
+
+	u.fromProcess(result, "", "config")
+	fmt.Println("From processed result:")
+	fmt.Println(unitool.MarshallYaml(result))
+}
+
 // SetConfigFile explicitly defines the path, name and extension of the uniconf file.
 func SetConfigFile(in string) { u.SetConfigFile(in) }
 func (u *Uniconf) SetConfigFile(in string) {
@@ -104,20 +240,12 @@ func (u *Uniconf) SetConfigFile(in string) {
 	}
 }
 
-func GetYaml() (yamlString string) { return u.GetYaml() }
-func (u *Uniconf) GetYaml() string {
-	y, err := yaml.Marshal(u.config)
-	if err != nil {
-		log.Fatalf("Err: %v", err)
-	}
-	return "---\n" + string(y)
+func GetYaml() (yamlString string) { return u.getYaml() }
+func (u *Uniconf) getYaml() string {
+	return unitool.MarshallYaml(u.config)
 }
 
-func GetJson() (yamlString string) { return u.GetJson() }
-func (u *Uniconf) GetJson() string {
-	y, err := json.Marshal(u.config)
-	if err != nil {
-		log.Fatalf("Err: %v", err)
-	}
-	return string(y)
+func GetJson() (yamlString string) { return u.getJson() }
+func (u *Uniconf) getJson() string {
+	return unitool.MarshallJson(u.config)
 }
