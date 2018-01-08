@@ -53,6 +53,5 @@ go\:clean-all: go\:clean
 	rm -rf glide.lock
 
 ## Install cli
-go\:install: $(APP) go\:build
+go\:install: ${RELEASE_DIR}/$(APP) go\:build
 	cp $(RELEASE_DIR)/$(APP) $(INSTALL_DIR)
-
