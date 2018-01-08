@@ -263,12 +263,39 @@ func CollectKeyParamsFromJsonPath(source map[string]interface{}, path, key strin
 			p += pathParts[i]
 		}
 
-		if p != pathParts[i] {
-		} else {
-		}
-
 		result := SearchMapWithPathStringPrefixes(source, p + "." + key)
 		if result != nil {
+			params = Merge(params, result).(map[string]interface{})
+		}
+	}
+
+	return params, nil
+}
+
+func CollectInvertedKeyParamsFromJsonPath(source map[string]interface{}, path, key string) (map[string]interface{}, error) {
+	source, err := DeepCopyMap(source)
+
+	if err != nil {
+		return nil, err
+	}
+
+	path = strings.Trim(path,".")
+	pathParts := strings.Split(path, ".")
+
+	params := make(map[string]interface{})
+
+	p := ""
+	for i := 0; i < len(pathParts); i++ {
+		if p != "" {
+			p += "." + key + "." + pathParts[i]
+		} else {
+			p += key + "." + pathParts[i]
+		}
+
+		result := SearchMapWithPathStringPrefixes(source, p)
+		if result != nil {
+			result, _ := DeepCopyMap(result.(map[string]interface{}))
+			delete(result, key)
 			params = Merge(params, result).(map[string]interface{})
 		}
 	}
