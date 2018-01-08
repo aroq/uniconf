@@ -116,8 +116,14 @@ func (u *Uniconf) defaultConfig() []map[string]interface{} {
 	}
 }
 
-// process processes configuration.
-func (u *Uniconf) process(source interface{}, path, phase string) {
+func Config() interface{} { return u.conf() }
+func (u *Uniconf) conf() interface{} {
+	return u.config
+}
+
+// Process processes configuration.
+func Process(source interface{}, path, phase string) interface{} { return u.process(source, path, phase) }
+func (u *Uniconf) process(source interface{}, path, phase string) interface{} {
 	processors := []map[string]interface{}{
 		{
 			"id":          "fromProcessor",
@@ -129,6 +135,7 @@ func (u *Uniconf) process(source interface{}, path, phase string) {
 			u.fromProcess(source, path, phase)
 		}
 	}
+	return source
 }
 
 func (u *Uniconf) fromProcess(source interface{}, path, phase string) {
