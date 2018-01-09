@@ -89,6 +89,10 @@ func (u *Uniconf) load(defaultConfig []map[string]interface{}) {
 		}
 	}
 }
+func Config() interface{} { return u.Config() }
+func (u *Uniconf) Config() interface{} {
+	return u.config
+}
 
 func (u *Uniconf) defaultConfig() []map[string]interface{} {
 	// TODO: refactor to provide settings from outside the app.
@@ -170,3 +174,4 @@ func GetJson() (yamlString string) { return u.getJson() }
 func (u *Uniconf) getJson() string {
 	return unitool.MarshallJson(u.config)
 }
+
