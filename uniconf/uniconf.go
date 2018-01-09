@@ -152,14 +152,14 @@ func (u *Uniconf) explain(jsonPath, key string) {
 		fmt.Println(unitool.MarshallYaml(history))
 	}
 
-	u.process(result, "", "config")
+	Process(result, "", "config")
 	fmt.Println("From processed result:")
 	fmt.Println(unitool.MarshallYaml(result))
 }
 
 // SetConfigFile explicitly defines the path, name and extension of the uniconf file.
-func SetConfigFile(in string) { u.SetConfigFile(in) }
-func (u *Uniconf) SetConfigFile(in string) {
+func SetConfigFile(in string) { u.setConfigFile(in) }
+func (u *Uniconf) setConfigFile(in string) {
 	if in != "" {
 		u.configFile = in
 	}
