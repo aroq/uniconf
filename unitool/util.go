@@ -93,6 +93,7 @@ func merge(dst, src interface{}, withHistory bool, id string, path string) inter
 }
 
 func ReadFile(filename string) []byte {
+	log.Debugf("Read file: %s", filename)
 	f, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Panicf("ReadFile error: %v ", err)
@@ -327,4 +328,15 @@ func StringListContains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func FormatByExtension(f string) string {
+	extension := filepath.Ext(f)
+	switch extension {
+	case ".yaml", ".yml":
+		return "yaml"
+	case ".json":
+		return "json"
+	}
+	return ""
 }

@@ -1,33 +1,59 @@
 package uniconf
 
 import (
+	"errors"
 	"github.com/aroq/uniconf/unitool"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"path"
 	"strconv"
 	"strings"
 )
 
 type ConfigEntity struct {
-	id      string
+	id     string
 	title  string
-	parent  *ConfigEntity
-	stream  []byte
+	parent *ConfigEntity
 	config  map[string]interface{}
-	format  string
 	source  SourceHandler
 	history map[string]interface{}
 }
 
-func (c *ConfigEntity) Read() error {
-	conf, err := unitool.UnmarshalByType(c.format, c.stream)
-	if err == nil {
-		c.config = conf
-		c.history = make(map[string]interface{})
-		c.saveHistory("", c.config)
+func NewConfigEntity(s *Source, configMap map[string]interface{}) (*ConfigEntity, error) {
+	if _, ok := configMap["config"]; !ok {
+		if _, ok := configMap["stream"]; ok {
+			stream := configMap["stream"].([]byte)
+			if stream != nil {
+				// TODO: check it.
+				conf, err := unitool.UnmarshalByType(configMap["format"].(string), stream)
+				if err == nil {
+					configMap["config"] = conf
+				}
+			}
+		}
 	}
-	return err
+	if _, ok := configMap["config"]; !ok {
+		return nil, errors.New("no ConfigEntity config is provided")
+	}
+	var parent *ConfigEntity
+	if _, ok := configMap["parent"]; ok {
+		parent = configMap["parent"].(*ConfigEntity)
+	} else {
+		parent = nil
+	}
+
+	if _, ok := configMap["title"]; !ok {
+		configMap["title"] = configMap["id"]
+	}
+	c := &ConfigEntity{
+		id:      configMap["id"].(string),
+		title:   configMap["title"].(string),
+		source:  s,
+		config:  configMap["config"].(map[string]interface{}),
+		history: make(map[string]interface{}),
+		parent:  parent,
+	}
+	c.history = make(map[string]interface{})
+	c.saveHistory("", c.config)
+	return c, nil
 }
 
 func (c *ConfigEntity) getHistoryChain() string {
@@ -75,7 +101,7 @@ func (c *ConfigEntity) saveHistory(path string, config map[string]interface{}) {
 	}
 }
 
-func (c *ConfigEntity) Process() {
+func (c *ConfigEntity) process() {
 	if len(c.config) != 0 {
 		c.processSources()
 		c.processIncludes()
@@ -87,8 +113,22 @@ func (c *ConfigEntity) processSources() {
 		for k, v := range sources {
 			log.Printf("Process source: %s", k)
 			if _, ok := u.sources[k]; !ok {
-				// TODO: Check repo type here.
-				source := NewSourceRepo(k, v.(map[string]interface{}))
+				// TODO: Check source type here.
+				sourceType := "repo"
+				if t, ok := v.(map[string]interface{})["type"]; ok {
+					sourceType = t.(string)
+				}
+				var source SourceHandler
+				switch sourceType {
+				case "repo":
+					source = NewSourceRepo(k, v.(map[string]interface{}))
+				case "env":
+					source = NewSourceEnv(k, v.(map[string]interface{}))
+				case "file":
+					source = NewSourceFile(k, v.(map[string]interface{}))
+				default:
+					source = NewSource(k, v.(map[string]interface{}))
+				}
 				u.sources[k] = source
 			} else {
 				log.Printf("Source: %s already loaded", k)
@@ -98,44 +138,43 @@ func (c *ConfigEntity) processSources() {
 }
 
 func (c *ConfigEntity) processIncludes() {
+	parseScenario := func(scenario string) (sourceName, scenarioName string) {
+		sourceName, include := "", ""
+		if strings.Contains(scenario, ":") {
+			s := strings.Split(scenario, ":")
+			sourceName, include = s[0], s[1]
+		} else {
+			sourceName, include = c.source.Name(), scenario
+		}
+		return sourceName, include
+	}
+
 	includesConfig := make(map[string]interface{})
 	history := make(map[string]interface{})
 
 	if includes, ok := c.config[includeListElementName]; ok {
-		for _, include := range includes.([]interface{}) {
-			scenario := include.(string)
-			log.Printf("Process include: %s", scenario)
-			sourceName, include := "", ""
-			if strings.Contains(scenario, ":") {
-				s := strings.Split(scenario, ":")
-				sourceName, include = s[0], s[1]
-			} else {
-				sourceName, include = c.source.Name(), scenario
-			}
-			title := include
-			if !(strings.Index(include, "/") == 0) {
-				include = path.Join(includesPath, include)
-			}
+		for _, v := range includes.([]interface{}) {
+			sourceName, scenarioId := parseScenario(v.(string))
+			// TODO: check if title is needed.
+			title := scenarioId
 			source := u.getSource(sourceName)
-			var includeFileNamesToCheck []string
-			includeFileName := path.Join(source.Path(), include)
-			includeFileNamesToCheck = append(includeFileNamesToCheck, includeFileName+".yaml", includeFileName+".yml", includeFileName+".json", path.Join(includeFileName, mainConfigFileName))
-
-			for _, f := range includeFileNamesToCheck {
-				if _, err := os.Stat(f); err == nil {
-					if _, ok := source.ConfigEntity(f); !ok {
-						if subConfigEntity, err := source.LoadConfigEntity(map[string]interface{}{"id": f, "title": title, "parent": c}); err == nil {
-							unitool.Merge(includesConfig, subConfigEntity.config)
-							unitool.Merge(history, subConfigEntity.history)
-						}
-					}
+			ids, _ := source.GetIncludeConfigEntityIds(scenarioId)
+			for _, id := range ids {
+				log.Printf("Process include: %s", source.Path() + ":" + id)
+				if subConfigEntity, err := source.LoadConfigEntity(map[string]interface{}{"id": id, "title": title, "parent": c}); err == nil {
+					unitool.Merge(includesConfig, subConfigEntity.config)
+					unitool.Merge(history, subConfigEntity.history)
+				} else {
+					log.Warnf("LoadConfigEntity error: %v", err)
 				}
 			}
 		}
 		c.config["from_processed"] = includes
 		delete(c.config, includeListElementName)
 	}
-	unitool.Merge(includesConfig, c.config)
-	unitool.Merge(c.history, history)
-	c.config = includesConfig
+	if c.config != nil {
+		unitool.Merge(includesConfig, c.config)
+		unitool.Merge(c.history, history)
+		c.config = includesConfig
+	}
 }

@@ -15,108 +15,117 @@
 package uniconf
 
 import (
+	"errors"
 	"fmt"
 	"github.com/aroq/uniconf/unitool"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"path"
-	"strings"
+	"github.com/spf13/viper"
 )
 
+type Phase struct {
+	Name            string
+	Args           []interface{}
+	Callback       func([]interface{}) (interface{}, error)
+	Phases      []*Phase
+	ParentPhase *Phase
+}
+
+type Callback struct {
+	Args   []interface{}
+	Method func([]interface{}) (interface{}, error)
+}
+
 type Uniconf struct {
-	config     map[string]interface{}
-	configFile string
-	sources    map[string]SourceHandler
-	history    map[string]interface{}
+	config       map[string]interface{}
+	sources      map[string]SourceHandler
+	history      map[string]interface{}
+	flatConfig   map[string]interface{}
+	contexts     []string
+	phases       map[string]*Phase
+	phasesList   []*Phase
+	currentPhase *Phase
 }
 
 var u *Uniconf
 
+var configProviders []func() interface{}
+
 const (
 	appTempFilesPath       = ".unipipe_temp"
-	configFilesPath        = ".unipipe"
 	sourceMapElementName   = "sources"
 	includeListElementName = "from"
 	sourcesStoragePath     = "sources"
 	mainConfigFileName     = "config.yaml"
 	includesPath           = "scenarios"
-	configEnvVarName       = "UNIPIPE_CONFIG"
 )
-
-// Init initializes uniconf.
-func init() {
-	//log.SetLevel(log.WarnLevel)
-	u = New()
-	u.load(u.defaultConfig())
-}
 
 // New returns an initialized Uniconf instance.
 func New() *Uniconf {
 	u := new(Uniconf)
 	u.config = make(map[string]interface{})
 	u.history = make(map[string]interface{})
-	u.configFile = path.Join(configFilesPath, mainConfigFileName)
 	u.sources = make(map[string]SourceHandler)
+	u.phasesList = make([]*Phase, 0)
+	u.phases = make(map[string]*Phase)
 	return u
 }
 
-// load loads configuration.
-func (u *Uniconf) load(defaultConfig []map[string]interface{}) {
-	if len(u.config) == 0 {
-		// TODO: check if this is needed.
-		os.RemoveAll(appTempFilesPath)
+// Init initializes uniconf.
+func init() {
+	//log.SetLevel(log.DebugLevel)
+	u = New()
+}
 
-		for i := 0; i < len(defaultConfig); i++ {
-			sourceName := defaultConfig[i]["sourceName"].(string)
-			sourceType := defaultConfig[i]["sourceType"].(string)
+func phaseFullName(phase *Phase) (string) {
+	name := ""
+	if phase.ParentPhase != nil {
+		name = phaseFullName(phase.ParentPhase) + "."
+	}
+	name += phase.Name
+	return name
+}
 
-			if sourceType == "env" {
-				u.sources[sourceName] = NewSourceEnv("env", nil)
-			}
-			if sourceType == "file" {
-				u.sources[sourceName] = NewSourceFile("project", map[string]interface{}{"path": "."})
-			}
-
-			for j := 0; j < len(defaultConfig[i]["configs"].([]map[string]interface{})); j++ {
-				if c, err := u.sources[sourceName].LoadConfigEntity(defaultConfig[i]["configs"].([]map[string]interface{})[j]); err == nil {
-					unitool.Merge(u.config, c.config)
-					unitool.Merge(u.history, c.history)
-				}
-			}
+func Execute() { u.execute(nil, u.phasesList) }
+func (u *Uniconf) execute(parentPhase *Phase, phases []*Phase) {
+	for _, phase := range phases {
+		phase.ParentPhase = parentPhase
+		u.currentPhase = phase
+		log.Debugf("Execute phase: %s", phaseFullName(phase))
+		if phase.Callback != nil {
+			phase.Callback(phase.Args)
 		}
-		if len(u.history) > 0 {
-			u.config["history"] = u.history
+		if phase.Phases != nil {
+			u.execute(phase, phase.Phases)
 		}
 	}
 }
+
+func AddConfigProvider(f ...func() interface{}) {
+	configProviders = append(configProviders, f...)
+}
+
+func SetContexts(contexts ...string) { u.setContexts(contexts...) }
+func (u *Uniconf) setContexts(contexts ...string) {
+	u.contexts = append(u.contexts, contexts...)
+}
+
 func Config() interface{} { return u.Config() }
 func (u *Uniconf) Config() interface{} {
 	return u.config
 }
 
-func (u *Uniconf) defaultConfig() []map[string]interface{} {
-	// TODO: refactor to provide settings from outside the app.
+func (u *Uniconf) mergeConfigEntity(configEntity *ConfigEntity) {
+	unitool.Merge(u.config, configEntity.config)
+	unitool.Merge(u.history, configEntity.history)
+}
 
-	return []map[string]interface{}{
-		{
-			"sourceName": "env",
-			"sourceType": "env",
-			"configs": []map[string]interface{}{
-				{
-					"id": configEnvVarName,
-				},
-			},
-		},
-		{
-			"sourceName": "project",
-			"sourceType": "file",
-			"configs": []map[string]interface{}{
-				{
-					"id": u.configFile,
-				},
-			},
-		},
+func AddSource(source SourceHandler) (SourceHandler, error) { return u.addSource(source) }
+func (u *Uniconf) addSource(source SourceHandler) (SourceHandler, error) {
+	if _, ok := u.sources[source.Name()]; ok {
+		return nil, errors.New(fmt.Sprintf("Source %v already added", source.Name()))
 	}
+	u.sources[source.Name()] = source
+	return source, nil
 }
 
 func (u *Uniconf) getSource(name string) SourceHandler {
@@ -135,43 +144,11 @@ func (u *Uniconf) getSource(name string) SourceHandler {
 	}
 }
 
-func Collect(jsonPath, key string) string { return u.collect(jsonPath, key) }
-func (u *Uniconf) collect(jsonPath, key string) string {
-	result, _ := unitool.CollectKeyParamsFromJsonPath(u.config, jsonPath, key)
-	return unitool.MarshallYaml(result)
-}
-
-func Explain(jsonPath, key string) { u.explain(jsonPath, key) }
-func (u *Uniconf) explain(jsonPath, key string) {
-	result := unitool.SearchMapWithPathStringPrefixes(u.config, jsonPath)
-	fmt.Println("Result:")
-	fmt.Println(unitool.MarshallYaml(result))
-
-	if history, ok := u.config["history"].(map[string]interface{})[strings.Trim(jsonPath, ".")]; ok {
-		fmt.Println("Load history:")
-		fmt.Println(unitool.MarshallYaml(history))
+func (u *Uniconf) allSettings(v *viper.Viper) map[string]interface{} {
+	result := make(map[string]interface{})
+	keys := v.AllKeys()
+	for _, value := range keys {
+		result[value] = v.Get(value)
 	}
-
-	Process(result, "", "config")
-	fmt.Println("From processed result:")
-	fmt.Println(unitool.MarshallYaml(result))
+	return result
 }
-
-// SetConfigFile explicitly defines the path, name and extension of the uniconf file.
-func SetConfigFile(in string) { u.setConfigFile(in) }
-func (u *Uniconf) setConfigFile(in string) {
-	if in != "" {
-		u.configFile = in
-	}
-}
-
-func GetYaml() (yamlString string) { return u.getYaml() }
-func (u *Uniconf) getYaml() string {
-	return unitool.MarshallYaml(u.config)
-}
-
-func GetJson() (yamlString string) { return u.getJson() }
-func (u *Uniconf) getJson() string {
-	return unitool.MarshallJson(u.config)
-}
-

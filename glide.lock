@@ -1,5 +1,5 @@
 hash: 2ff8bf75fa6dbb0dba93d4b66f73b4684e6a870446571336e4d5b16a43cac944
-updated: 2018-01-08T17:40:24.822467+03:00
+updated: 2018-01-09T17:31:24.482799+03:00
 imports:
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
@@ -17,6 +17,12 @@ imports:
   - json/parser
   - json/scanner
   - json/token
+- name: github.com/hashicorp/hil
+  version: fa9f258a92500514cc8e9c67020487709df92432
+  subpackages:
+  - ast
+  - parser
+  - scanner
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jbenet/go-context
@@ -29,6 +35,8 @@ imports:
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mitchellh/mapstructure
   version: 06020f85339e21b2478f756a78e295255ffa4d6a
+- name: github.com/mitchellh/reflectwalk
+  version: 63d60e9d0dbc60cf9164e6510889b0db6683d98c
 - name: github.com/pelletier/go-toml
   version: 0131db6d737cfbbfb678f8b7d92e55e27ce46224
 - name: github.com/sergi/go-diff

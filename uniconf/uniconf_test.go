@@ -25,7 +25,42 @@ var testJsonConfig3 = []byte(`{
   "log_level": "INFO"
 }`)
 
-func TestLoad(t *testing.T) {
+func LoadTestConfig() {
+	u = New()
+	AddConfigProvider(testUniconfConfig)
+	AddPhase(&Phase{
+		Name: "load_config",
+		Callbacks: []*Callback{
+			{
+				Args:   nil,
+				Method: Load,
+			},
+		},
+	})
+	AddPhase(&Phase{
+		Name: "process_contexts",
+		Callbacks: []*Callback{
+			{
+				Args:   nil,
+				Method: ProcessContexts,
+			},
+		},
+	})
+	AddPhase(&Phase{
+		Name: "flatten_config",
+		Callbacks: []*Callback{
+			{
+				Args:   nil,
+				Method: FlattenConfig,
+			},
+		},
+	})
+
+	Execute()
+}
+
+// defaultUniconfConfig provides default Uniconf configuration.
+func testUniconfConfig() interface{} {
 	buffer := bytes.NewBuffer(testJsonConfig1)
 	s := string(buffer.String())
 	os.Setenv("UNIPIPE_CONFIG1", s)
@@ -34,23 +69,21 @@ func TestLoad(t *testing.T) {
 	s = string(buffer.String())
 	os.Setenv("UNIPIPE_CONFIG2", s)
 
-	config := []map[string]interface{}{
-		{
-			"sourceName": "env",
-			"sourceType": "env",
-			"configs": []map[string]interface{}{
-				{
-					"id": "UNIPIPE_CONFIG1",
-				},
-				{
-					"id": "UNIPIPE_CONFIG2",
-				},
+	return map[string]interface{}{
+		"sources": map[string]interface{}{
+			"env": map[string]interface{}{
+				"type": "env",
 			},
 		},
+		"from": []interface{}{
+			"env:UNIPIPE_CONFIG1",
+			"env:UNIPIPE_CONFIG2",
+		},
 	}
+}
 
-	u = New()
-	u.load(config)
+func TestLoad(t *testing.T) {
+	LoadTestConfig()
 
 	//t.Logf("Config: \n%v", u.config)
 	//t.Logf("History: \n%v", u.history)
@@ -66,4 +99,40 @@ func TestLoad(t *testing.T) {
 		t.Errorf("Uniconf history failed env:UNIPIPE_CONFIG2")
 	}
 }
+
+func TestInterpolateString(t *testing.T) {
+	LoadTestConfig()
+	//src, _ := unitool.UnmarshalYaml(yamlExample)
+
+	result := InterpolateString("${log_level}", u.flatConfig)
+	//result := InterpolateString("${params.jobs.dev.params.branch}", u.flatConfig)
+	if result != "INFO" {
+		t.Errorf("Interpolate string failed: expected value: 'master', real value: %v", result)
+	}
+
+	result = InterpolateString("${deepGet(\"log_level\")}", u.flatConfig)
+	//result = InterpolateString("${deepGet(\"params.jobs.dev.params.branch\")}", u.flatConfig)
+	if result != "INFO" {
+		t.Errorf("Interpolate string with initial deepGet() failed: expected value: 'master', real value: %v", result)
+	}
+}
+
+var yamlExample = []byte(`params:
+  jobs:
+    params:
+      jobs_param: true
+    dev:
+      params:
+        jobs_param: false
+        jobs_dev_param: true
+        branch: master
+        context:
+          environment: dev
+    prod:
+      params:
+        branch: master
+        context:
+          environment: prod
+`)
+
 
