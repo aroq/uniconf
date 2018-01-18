@@ -232,12 +232,46 @@ func (s *SourceConfigMap) LoadConfigEntity(configMap map[string]interface{}) (*C
 		case map[string]interface{}:
 			configMap["config"] = value
 		case []byte:
-			format := unitool.FormatByExtension(configMap["id"].(string))
+			// TODO: check if JSON format is needed at all here.
+			format := "yaml"
 			configMap["config"], _ = unitool.UnmarshalByType(format, value.([]byte))
 		}
 		return s.Source.LoadConfigEntity(configMap)
 	}
 	return nil, errors.New(fmt.Sprintf("source config map entry %s doesnt'exists", configMap["id"].(string)))
+}
+
+func (s *SourceConfigMap) GetIncludeConfigEntityIds(scenarioId string) ([]string, error) {
+	ids := make([]string, 0)
+	files := make([]string, 0)
+	if strings.Index(scenarioId, "/") == 0 {
+		ids = append(ids, scenarioId)
+	} else {
+		if strings.Contains(scenarioId, "/") {
+			s := strings.Split(scenarioId, "/")
+			id := ""
+			for _, v := range s {
+				if v != "" {
+					if id == "" {
+						id += v
+					} else {
+						id += "/" + v
+					}
+					ids = append(ids, id)
+				}
+			}
+		} else {
+			ids = append(ids, scenarioId)
+		}
+	}
+
+	for _, f := range ids {
+		if _, ok := s.configMap[f]; ok {
+			files = append(files, f)
+		}
+	}
+
+	return files, nil
 }
 
 func NewSource(sourceName string, sourceMap map[string]interface{}) *Source {
