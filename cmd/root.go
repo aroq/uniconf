@@ -71,7 +71,12 @@ func init() {
 
 // initConfig initializes Uniconf.
 func initConfig() {
-	uniconf.AddConfigProvider(defaultUniconfConfig)
+	uniconf.AddSource(uniconf.NewSourceConfigMap("root", map[string]interface{}{
+		"configMap": map[string]interface{}{
+			"root": defaultUniconfConfig(),
+		},
+	}))
+	uniconf.SetRootSource("root")
 
 	uniconf.AddPhase(&uniconf.Phase{
 		Name: "config",
@@ -93,7 +98,7 @@ func initConfig() {
 }
 
 // defaultUniconfConfig provides default Uniconf configuration.
-func defaultUniconfConfig() interface{} {
+func defaultUniconfConfig() map[string]interface{} {
 	return map[string]interface{}{
 		"sources": map[string]interface{}{
 			"env": map[string]interface{}{

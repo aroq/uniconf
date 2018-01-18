@@ -1,18 +1,19 @@
 package uniconf
 
 import (
+	"errors"
+	"fmt"
 	"github.com/aroq/uniconf/unitool"
 	log "github.com/sirupsen/logrus"
-	"path"
-	"fmt"
 	"os"
-	"errors"
+	"path"
 	"strings"
 )
 
 type SourceHandler interface {
 	Name() string
 	Path() string
+	Autoload() string
 	LoadSource() error
 	IsLoaded() bool
 	GetIncludeConfigEntityIds(scenarioId string) ([]string, error)
@@ -21,9 +22,10 @@ type SourceHandler interface {
 }
 
 type Source struct {
-	name     string
-	isLoaded bool
+	name           string
+	isLoaded       bool
 	configEntities map[string]*ConfigEntity
+	autoloadId     string
 }
 
 type SourceFile struct {
@@ -40,6 +42,11 @@ type SourceRepo struct {
 
 type SourceEnv struct {
 	Source
+}
+
+type SourceConfigMap struct {
+	Source
+	configMap map[string]interface{}
 }
 
 const (
@@ -69,6 +76,10 @@ func (s *Source) GetIncludeConfigEntityIds(scenarioId string) ([]string, error) 
 	return []string{scenarioId}, nil
 }
 
+func (s *Source) Autoload() string {
+	return s.autoloadId
+}
+
 func (s *Source) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error) {
 	fmt.Sprintf("Process %s: %s", configMap["name"], configMap["id"])
 	if c, ok := s.ConfigEntity(configMap["id"].(string)); ok {
@@ -83,6 +94,7 @@ func (s *Source) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEnti
 		return c, nil
 	}
 }
+
 func (s *Source) ConfigEntity(id string) (*ConfigEntity, bool) {
 	if c, ok := s.configEntities[id]; ok {
 		return c, true
@@ -214,12 +226,30 @@ func (s *SourceEnv) LoadConfigEntity(configMap map[string]interface{}) (*ConfigE
 	return nil, errors.New(fmt.Sprintf("environment variable %s doesnt'exists", configMap["id"].(string)))
 }
 
+func (s *SourceConfigMap) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error) {
+	if value, ok := s.configMap[configMap["id"].(string)]; ok {
+		switch value.(type) {
+		case map[string]interface{}:
+			configMap["config"] = value
+		case []byte:
+			format := unitool.FormatByExtension(configMap["id"].(string))
+			configMap["config"], _ = unitool.UnmarshalByType(format, value.([]byte))
+		}
+		return s.Source.LoadConfigEntity(configMap)
+	}
+	return nil, errors.New(fmt.Sprintf("source config map entry %s doesnt'exists", configMap["id"].(string)))
+}
+
 func NewSource(sourceName string, sourceMap map[string]interface{}) *Source {
-	return &Source{
-		name:     sourceName,
-		isLoaded: false,
+	source := &Source{
+		name:           sourceName,
+		isLoaded:       false,
 		configEntities: make(map[string]*ConfigEntity),
 	}
+	if autoloadId, ok := sourceMap["autoload"]; ok {
+		source.autoloadId = autoloadId.(string)
+	}
+	return source
 }
 
 func NewSourceRepo(sourceName string, sourceMap map[string]interface{}) *SourceRepo {
@@ -236,16 +266,16 @@ func NewSourceRepo(sourceName string, sourceMap map[string]interface{}) *SourceR
 	}
 	return &SourceRepo{
 		SourceFile: *NewSourceFile(sourceName, sourceMap),
-		repo:      sourceMap["repo"].(string),
-		ref:       ref,
-		refPrefix: prefix.(string),
+		repo:       sourceMap["repo"].(string),
+		ref:        ref,
+		refPrefix:  prefix.(string),
 	}
 }
 
 func NewSourceFile(sourceName string, sourceMap map[string]interface{}) *SourceFile {
 	return &SourceFile{
 		Source: *NewSource(sourceName, sourceMap),
-		path: sourceMap["path"].(string),
+		path:   sourceMap["path"].(string),
 	}
 }
 
@@ -255,3 +285,9 @@ func NewSourceEnv(sourceName string, sourceMap map[string]interface{}) *SourceEn
 	}
 }
 
+func NewSourceConfigMap(sourceName string, sourceMap map[string]interface{}) *SourceConfigMap {
+	return &SourceConfigMap{
+		Source:    *NewSource(sourceName, sourceMap),
+		configMap: sourceMap["configMap"].(map[string]interface{}),
+	}
+}

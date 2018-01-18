@@ -23,9 +23,9 @@ import (
 )
 
 type Phase struct {
-	Name            string
-	Args           []interface{}
-	Callback       func([]interface{}) (interface{}, error)
+	Name        string
+	Args        []interface{}
+	Callback    func([]interface{}) (interface{}, error)
 	Phases      []*Phase
 	ParentPhase *Phase
 }
@@ -44,6 +44,7 @@ type Uniconf struct {
 	phases       map[string]*Phase
 	phasesList   []*Phase
 	currentPhase *Phase
+	rootSource   SourceHandler
 }
 
 var u *Uniconf
@@ -76,13 +77,22 @@ func init() {
 	u = New()
 }
 
-func phaseFullName(phase *Phase) (string) {
+func phaseFullName(phase *Phase) string {
 	name := ""
 	if phase.ParentPhase != nil {
 		name = phaseFullName(phase.ParentPhase) + "."
 	}
 	name += phase.Name
 	return name
+}
+
+func SetRootSource(sourceName string) { u.setRootSource(sourceName) }
+func (u *Uniconf) setRootSource(sourceName string) {
+	if source := u.getSource(sourceName); source != nil {
+		u.rootSource = source
+	} else {
+		log.Errorf("source %s is not found", sourceName)
+	}
 }
 
 func Execute() { u.execute(nil, u.phasesList) }
@@ -98,10 +108,6 @@ func (u *Uniconf) execute(parentPhase *Phase, phases []*Phase) {
 			u.execute(phase, phase.Phases)
 		}
 	}
-}
-
-func AddConfigProvider(f ...func() interface{}) {
-	configProviders = append(configProviders, f...)
 }
 
 func SetContexts(contexts ...string) { u.setContexts(contexts...) }

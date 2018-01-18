@@ -126,10 +126,19 @@ func (c *ConfigEntity) processSources() {
 					source = NewSourceEnv(k, v.(map[string]interface{}))
 				case "file":
 					source = NewSourceFile(k, v.(map[string]interface{}))
+				case "config_map":
+					source = NewSourceConfigMap(k, v.(map[string]interface{}))
 				default:
-					source = NewSource(k, v.(map[string]interface{}))
+					source = NewSourceRepo(k, v.(map[string]interface{}))
 				}
 				u.sources[k] = source
+
+				if autoloadId := source.Autoload(); autoloadId != "" {
+					if _, ok := c.config[includeListElementName]; !ok {
+						c.config[includeListElementName] = make([]interface{}, 0)
+					}
+					c.config[includeListElementName] = append(c.config[includeListElementName].([]interface{}), strings.Join([]string{source.Name(), autoloadId}, ":"))
+				}
 			} else {
 				log.Printf("Source: %s already loaded", k)
 			}

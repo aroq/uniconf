@@ -24,25 +24,18 @@ func (u *Uniconf) addPhase(phase *Phase) {
 // Load loads configuration.
 func Load(inputs []interface{}) (interface{}, error) { return u.load(inputs) }
 func (u *Uniconf) load(inputs []interface{})(interface{}, error) {
-	defaultConfig := make(map[string]interface{})
-	for _, p := range configProviders {
-		c := p().(map[string]interface{})
-		unitool.Merge(defaultConfig, c)
-	}
 	if len(u.config) == 0 {
 		os.RemoveAll(appTempFilesPath)
-		source, err := AddSource(NewSource("root", nil))
-		if err != nil {
-			log.Errorf("Root source was not added")
-		}
-		configMap := map[string]interface{}{
-			"id": "root",
-			"config": defaultConfig,
-		}
-		if c, err := source.LoadConfigEntity(configMap); err == nil {
-			u.mergeConfigEntity(c)
-		} else {
-			log.Errorf("Config entity is not loaded")
+
+		if u.rootSource != nil {
+			configMap := map[string]interface{}{
+				"id": "root",
+			}
+			if c, err := u.rootSource.LoadConfigEntity(configMap); err == nil {
+				u.mergeConfigEntity(c)
+			} else {
+				log.Errorf("Config entity is not loaded")
+			}
 		}
 	}
 	return nil, nil
@@ -98,7 +91,6 @@ func processKeys(key string, source interface{}, parent interface{}, path string
 				if ((processor.IncludeKeys != nil && stringListContains(processor.IncludeKeys, key)) || processor.IncludeKeys == nil) &&
 			    	((processor.ExcludeKeys != nil && !stringListContains(processor.ExcludeKeys, key)) || processor.ExcludeKeys == nil) {
 					value := source.(string)
-					log.Debugf("Key processing start: %s - %v", path, value)
 					result, processed, mergeToParent, removeParentKey, replaceSource := processor.Callback(value, path, phase)
 					if mergeToParent {
 						unitool.Merge(parent, result)
