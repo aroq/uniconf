@@ -28,6 +28,8 @@ type Phase struct {
 	Callback    func([]interface{}) (interface{}, error)
 	Phases      []*Phase
 	ParentPhase *Phase
+	Result      *interface{}
+	Error       error
 }
 
 type Callback struct {
@@ -62,7 +64,7 @@ const (
 
 // New returns an initialized Uniconf instance.
 func New() *Uniconf {
-	u := new(Uniconf)
+	u = new(Uniconf)
 	u.config = make(map[string]interface{})
 	u.history = make(map[string]interface{})
 	u.sources = make(map[string]SourceHandler)
@@ -102,7 +104,13 @@ func (u *Uniconf) execute(parentPhase *Phase, phases []*Phase) {
 		u.currentPhase = phase
 		log.Debugf("Execute phase: %s", phaseFullName(phase))
 		if phase.Callback != nil {
-			phase.Callback(phase.Args)
+			result, err := phase.Callback(phase.Args)
+			if phase.Result != nil {
+				*phase.Result = result
+			}
+			if phase.Error != nil {
+				phase.Error = err
+			}
 		}
 		if phase.Phases != nil {
 			u.execute(phase, phase.Phases)
@@ -115,8 +123,8 @@ func (u *Uniconf) setContexts(contexts ...string) {
 	u.contexts = append(u.contexts, contexts...)
 }
 
-func Config() interface{} { return u.Config() }
-func (u *Uniconf) Config() interface{} {
+func Config() map[string]interface{} { return u.Config() }
+func (u *Uniconf) Config() map[string]interface{} {
 	return u.config
 }
 

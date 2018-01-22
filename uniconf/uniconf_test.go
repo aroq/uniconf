@@ -1,15 +1,18 @@
-package uniconf
+package uniconf_test
 
 import (
 	"bytes"
+	"github.com/aroq/uniconf/uniconf"
 	"github.com/aroq/uniconf/unitool"
+	"github.com/juju/testing/checkers"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
 
 // TestMain provides config values and executes tests.
 func PrepareTest() {
-	u = New()
+	uniconf.New()
 
 	// Set environment variables.
 	var envVars = map[string][]byte{
@@ -47,25 +50,24 @@ func PrepareTest() {
 	}
 
 	// Provide sources & config entities.
-	AddSource(NewSourceConfigMap("root", map[string]interface{}{
+	uniconf.AddSource(uniconf.NewSourceConfigMap("root", map[string]interface{}{
 		"configMap": map[string]interface{}{
 			"root": rootConfig(),
 		},
 	}))
-	SetRootSource("root")
+	uniconf.SetRootSource("root")
 
-	AddSource(NewSourceConfigMap("project", map[string]interface{}{
+	uniconf.AddSource(uniconf.NewSourceConfigMap("project", map[string]interface{}{
 		"configMap": map[string]interface{}{
 			"root": testHelmProjectYaml,
 		},
 	}))
-
-	AddSource(NewSourceConfigMap("drupipe", map[string]interface{}{
+	uniconf.AddSource(uniconf.NewSourceConfigMap("drupipe", map[string]interface{}{
 		"configMap": map[string]interface{}{
 			"helm":        testDrupipeHelmYaml,
 			"helm/blocks": testDrupipeHelmBlocksYaml,
 			"helm/jobs":   testDrupipeHelmJobsYaml,
-			"v3":  testDrupipeV3Yaml,
+			"v3":          testDrupipeV3Yaml,
 			"v3/actions":  testDrupipeV3ActionsYaml,
 		},
 	}))
@@ -75,53 +77,51 @@ func PrepareTest() {
 func TestLoad(t *testing.T) {
 	PrepareTest()
 
-	AddPhase(&Phase{
+	uniconf.AddPhase(&uniconf.Phase{
 		Name: "config",
-		Phases: []*Phase{
+		Phases: []*uniconf.Phase{
 			{
 				Name:     "load",
-				Callback: Load,
+				Callback: uniconf.Load,
 			},
+			//{
+			//	Name:     "print",
+			//	Callback: uniconf.PrintConfig,
+			//	//Args: []interface{}{
+			//	//	"jobs.prod.jobs.install",
+			//	//},
+			//},
 		},
 	})
 
-	SetContexts("jobs.dev.jobs.install")
+	uniconf.SetContexts("jobs.dev.jobs.install")
 
-	Execute()
+	uniconf.Execute()
 
 	t.Run("u.config defined", func(t *testing.T) {
-		if u.config == nil {
-			t.Fatalf("Uniconf load failed: no config")
-		}
+		assert.NotEqual(t, uniconf.Config(), nil, "no config defined")
 	})
-
 	t.Run("log_level", func(t *testing.T) {
-		if _, ok := u.config["log_level"]; !ok {
-			t.Fatalf("Uniconf load failed: no 'log_level' key in config")
-		}
-		t.Run("log_level==DEBUG", func(t *testing.T) {
-			if u.config["log_level"].(string) != "DEBUG" {
-				t.Errorf("Uniconf load failed: log_level=DEBUG")
-			}
-		})
-		t.Run("history==env:UNICONF", func(t *testing.T) {
-			if _, ok := u.history["log_level"].(map[string]interface{})["load"].(map[string]interface{})["env:UNICONF"]; !ok {
-				t.Errorf("Uniconf history failed env:UNICONF")
-			}
-		})
-	})
+		assert.Contains(t, uniconf.Config(), "log_level", "no 'log_level' key in config")
+		assert.Equal(t, uniconf.Config()["log_level"], "DEBUG", "log_level should equal 'DEBUG'")
 
+		//t.Run("history==env:UNICONF", func(t *testing.T) {
+		//	if _, ok := uniconf.Config().history["log_level"].(map[string]interface{})["load"].(map[string]interface{})["env:UNICONF"]; !ok {
+		//		t.Errorf("Uniconf history failed env:UNICONF")
+		//	}
+		//})
+	})
 	t.Run("Collect(params.jobs.common.helm.install).pipeline.from = '.params.pipelines.helm.install'", func(t *testing.T) {
 		path := "params.jobs.common.helm.install"
-		params, _ := unitool.CollectKeyParamsFromJsonPath(u.config, path, "params")
-		//t.Logf("collectKeyParamsFromJsonPath result: %v", params)
+		params, _ := unitool.CollectKeyParamsFromJsonPath(uniconf.Config(), path, "params")
+		assert.Equal(t, unitool.SearchMapWithPathStringPrefixes(params, "pipeline.from"), ".params.pipelines.helm.install", "Deep key search failed: %s", path)
+	})
 
-		path = "pipeline.from"
-		value := ".params.pipelines.helm.install"
-		result := unitool.SearchMapWithPathStringPrefixes(params, path)
-		if result != value {
-			t.Errorf("Deep key search failed: %s, expected value: %v, real value: %v", path, value, result)
-		}
+	t.Run("Compare Load() result", func(t *testing.T) {
+		i1 := uniconf.Config()
+		i2, _ := unitool.UnmarshalYaml(testLoadResult)
+		result, err := AreEqualInterfaces(i1, i2)
+		assert.Equal(t, result, true, "Compare Load() result failed: %v", err)
 	})
 }
 
@@ -129,33 +129,33 @@ func TestLoad(t *testing.T) {
 func TestLoadWithFlattenConfig(t *testing.T) {
 	PrepareTest()
 
-	AddPhase(&Phase{
+	uniconf.AddPhase(&uniconf.Phase{
 		Name: "config",
-		Phases: []*Phase{
+		Phases: []*uniconf.Phase{
 			{
 				Name:     "load",
-				Callback: Load,
+				Callback: uniconf.Load,
 			},
 			{
 				Name:     "flatten_config",
-				Callback: FlattenConfig,
+				Callback: uniconf.FlattenConfig,
 			},
 		},
 	})
 
-	SetContexts("jobs.dev.jobs.install")
+	uniconf.SetContexts("jobs.dev.jobs.install")
 
-	Execute()
+	uniconf.Execute()
 
 	t.Run("InterpolateString", func(t *testing.T) {
 		t.Run("${log_level}==DEBUG", func(t *testing.T) {
-			result := InterpolateString("${log_level}", u.flatConfig)
+			result := uniconf.InterpolateString("${log_level}", nil)
 			if result != "DEBUG" {
 				t.Errorf("Interpolate string failed: expected value: 'master', real value: %v", result)
 			}
 		})
 		t.Run("${deepGet(log_level)}==DEBUG", func(t *testing.T) {
-			result := InterpolateString("${deepGet(\"log_level\")}", u.flatConfig)
+			result := uniconf.InterpolateString("${deepGet(\"log_level\")}", nil)
 			if result != "DEBUG" {
 				t.Errorf("Interpolate string with initial deepGet() failed: expected value: 'master', real value: %v", result)
 			}
@@ -167,38 +167,41 @@ func TestLoadWithFlattenConfig(t *testing.T) {
 func TestLoadFromProcess(t *testing.T) {
 	PrepareTest()
 
-	AddPhase(&Phase{
+	var processKeysResult interface{}
+
+	uniconf.AddPhase(&uniconf.Phase{
 		Name: "config",
-		Phases: []*Phase{
+		Phases: []*uniconf.Phase{
 			{
 				Name:     "load",
-				Callback: Load,
+				Callback: uniconf.Load,
 			},
 			{
 				Name:     "process_contexts",
-				Callback: ProcessContexts,
+				Callback: uniconf.ProcessContexts,
 			},
 			{
 				Name:     "flatten_config",
-				Callback: FlattenConfig,
+				Callback: uniconf.FlattenConfig,
 			},
 			{
 				Name:     "process",
-				Callback: ProcessKeys,
+				Callback: uniconf.ProcessKeys,
 				Args: []interface{}{
 					"prod.install",
 					"jobs",
-					[]*Processor{
+					[]*uniconf.Processor{
 						{
-							Callback:    FromProcess,
+							Callback:    uniconf.FromProcess,
 							IncludeKeys: []string{"from"},
 						},
 					},
 				},
+				Result: &processKeysResult,
 			},
 			{
 				Name:     "print",
-				Callback: PrintConfig,
+				Callback: uniconf.PrintConfig,
 				Args: []interface{}{
 					"jobs.prod.jobs.install",
 				},
@@ -206,11 +209,11 @@ func TestLoadFromProcess(t *testing.T) {
 		},
 	})
 
-	SetContexts("jobs.prod.jobs.install")
+	uniconf.SetContexts("jobs.prod.jobs.install")
 
-	Execute()
+	uniconf.Execute()
 
-	job, _ := unitool.CollectInvertedKeyParamsFromJsonPath(u.config, "prod.install", "jobs")
+	job, _ := unitool.CollectInvertedKeyParamsFromJsonPath(uniconf.Config(), "prod.install", "jobs")
 
 	path := "pipeline.name"
 	value := "default"
@@ -218,9 +221,22 @@ func TestLoadFromProcess(t *testing.T) {
 	if result != value {
 		t.Errorf("Deep key search failed: %s, expected value: %v, real value: %v", path, value, result)
 	}
+
+	t.Run("Compare processed job result", func(t *testing.T) {
+		job := unitool.SearchMapWithPathStringPrefixes(uniconf.Config(), "jobs.prod.jobs.install")
+		i1, _ := unitool.UnmarshalYaml([]byte(unitool.MarshallYaml(job)))
+		i2, _ := unitool.UnmarshalYaml(testHelmProdInstallJobResult)
+		result, err := AreEqualInterfaces(i1, i2)
+		assert.Equal(t, result, true, "Compare processed job result failed: %v", err)
+	})
+}
+
+func AreEqualInterfaces(i1, i2 interface{}) (bool, error) {
+	return checkers.DeepEqual(i1, i2)
 }
 
 // Test config entities.
+
 var testHelmProjectYaml = []byte(`---
 from:
   - drupipe:helm
@@ -230,9 +246,9 @@ container_types:
     apply:
       type: chart
 jobs:
-  dev: null
-  preprod: null
-  merge-requests: null
+  dev:
+    from:
+      - .params.jobs.folder.dev
   prod:
     from:
       - .params.jobs.folder.prod
@@ -261,7 +277,6 @@ from:
 tags:
   - single
   - helm
-pipeline_script_full: Jenkinsfile
 params:
   actions:
     GCloud:
@@ -526,15 +541,8 @@ jobs:
             - from: .params.pods.default
               containers:
                 - from: .params.containers.helm.destroy
-
       destroy:
         from: .params.jobs.common.helm.destroy
-
-  # stable-bump:
-    # from:
-      # - .params.jobs.common.bump_stable
-      # - .params.jobs.gitlab.triggers.push.master
-      # - .params.jobs.gitlab.webhooks.push
 `)
 
 var testDrupipeV3Yaml = []byte(`---
@@ -565,131 +573,11 @@ params:
 `)
 
 var testDrupipeV3ActionsYaml = []byte(`---
-config_version: 3
-
-log_level: INFO
-
-log_levels:
-  TRACE:
-    weight: 10
-    color: cyan
-  DEBUG:
-    weight: 20
-    color: yellow
-  INFO:
-    weight: 30
-    color: green
-  WARNING:
-    weight: 40
-    color: red
-  ERROR:
-    weight: 50
-    color: magenta
-
-uniconf:
-  keys:
-    include: scenarios
-    sources: scenarioSources
-    params: params
-    jobs: jobs
-    processors: processors
-  dirs:
-    sources: scenarios
-  files:
-    config_file_name: config.yaml
-  include:
-    prefix: .params.
-    separator: '|'
-
-environment: ''
-debugEnabled: false
-docrootDir: docroot
-docmanDir: docman
-projectConfigPath: .unipipe/config
-projectConfigFile: docroot.config
-containerMode: docker
-configSeedType: docman
-defaultDocmanImage: michaeltigr/zebra-build-php-drush-docman:0.0.87
-logRotatorNumToKeep: 5
-drupipeDockerArgs: --user root:root --net=host
-
-processors:
-  - className: DrupipeFromProcessor
-    properties:
-      include_key: from
-
-config_providers_list:
-  - env
-  - mothership
-  - project
-  - job
-
-config_providers:
-  env:
-    class_name: ConfigProviderEnv
-  mothership:
-    class_name: ConfigProviderMothership
-  project:
-    class_name: ConfigProviderProject
-  job:
-    class_name: ConfigProviderJob
-
 params:
-
-jobs:
-  mothership:
-    type: mothership
-    pipeline:
-      pods:
-      - from: .params.pods.master
-        containers:
-        - from: .params.containers.common
-          blocks:
-          - actions:
-            - from: .params.actions.JobDslSeed.perform
-              dsl_params:
-                lookupStrategy: JENKINS_ROOT
-                jobsPattern: ['.unipipe/library/jobdsl/job_dsl_mothership.groovy']
-                override: true
-                removedJobAction: DELETE
-                removedViewAction: DELETE
-                additionalClasspath: ['.unipipe/library/src']
-
-  seed:
-    type: seed
-    pipeline:
-      pods:
-      - from: .params.pods.default
-        containers:
-        - from: .params.containers.common
-          blocks:
-          - actions:
-            - from: .params.actions.JobDslSeed.info
-      - from: .params.pods.master
-        containers:
-        - from: .params.containers.common
-          blocks:
-          - actions:
-            - from: .params.actions.JobDslSeed.prepare
-            - from: .params.actions.JobDslSeed.perform
-
-params:
-  pipeline:
-    scripts_library:
-      url: https://github.com/aroq/drupipe.git
-      ref: master
-      type: branch
-
-  block:
-    nodeName: default
-    # TODO: remove it after configs update.
-    dockerImage: aroq/drudock:1.4.0
-
   processors:
       from:
         # defines in which mode 'from' should be processed.
         mode: config
-
   jobs:
     folder:
       params:
@@ -800,3 +688,467 @@ params:
                 - from: .params.actions.Ssh.tunnel
 `)
 
+var testLoadResult = []byte(`---
+container_types:
+  helm:
+    apply:
+      type: chart
+from_processed:
+- helm/blocks
+- helm/jobs
+- drupipe:helm
+- drupipe:v3/actions
+- env:UNICONF
+- project:root
+- env:UNICONF_TEST_MULTIPART_ENVVAR
+jobs:
+  dev:
+    from:
+    - .params.jobs.folder.dev
+    - .params.jobs.folder.helm.general.install
+    - .params.jobs.folder.dev
+    jobs:
+      install:
+        from:
+        - .params.jobs.gitlab.triggers.push.develop
+        - .params.jobs.gitlab.webhooks.push
+  merge-requests:
+    from: .params.jobs.folder.mr
+    jobs:
+      destroy:
+        from: .params.jobs.common.helm.destroy
+      install:
+        from:
+        - .params.jobs.common
+        - .params.jobs.gitlab.mr
+        - .params.jobs.gitlab.triggers.mr
+        - .params.jobs.gitlab.webhooks.mr
+        pipeline:
+          final_pods:
+          - containers:
+            - from: .params.containers.helm.destroy
+            from: .params.pods.default
+          post_pods:
+          - containers:
+            - blocks:
+              - from: .params.blocks.gitlab.accept-mr
+              from: .params.containers.common
+            from: .params.pods.master
+      status:
+        from: .params.jobs.common.helm.status
+  preprod:
+    from:
+    - .params.jobs.folder.preprod
+    - .params.jobs.folder.helm.general.install
+  prod:
+    from:
+    - .params.jobs.folder.prod
+    - .params.jobs.folder.helm.general.install
+    - .params.jobs.folder.prod
+log_level: DEBUG
+params:
+  actions:
+    GCloud:
+      params:
+        access_key_file_id: GCLOUD_ACCESS_KEY
+        cluster_name: main
+        project_name: zebra-cicd
+    Helm:
+      params:
+        chart_name: traefik
+        chart_prefix: stable
+        namespace: kube-system
+    Kubectl:
+      params:
+        chart_name: traefik
+        chart_prefix: stable
+        namespace: kube-system
+        template_name: traefik
+    params:
+      action_timeout: 120
+      dump_result: true
+      fallback_class_name: BaseShellAction
+      hooks:
+      - params
+      result_post_process:
+        result:
+          destination: ${action.params.store_result_key}
+          source: result
+          type: result
+      return_stdout: false
+      shell_bash_login: true
+      store_action_params: true
+      store_action_params_key: actions.${action.name}_${action.methodName}
+      store_result: true
+      store_result_key: context.results.action.${action.name}_${action.methodName}
+    processors:
+      from:
+        mode: execute
+  blocks:
+    bump-stable:
+      params:
+        actions:
+        - from: .params.actions.Docman.bumpStable
+    gcloud:
+      auth:
+        params:
+          actions:
+          - from: .params.actions.GCloud.auth
+    get-stable-version:
+      params:
+        actions:
+        - dir: stable_version
+          from: .params.actions.Docman.getStable
+    gitlab:
+      accept-mr:
+        params:
+          actions:
+          - from: .params.actions.Gitlab.acceptMR
+            message: All tests passed.
+    healthcheck:
+      wait-http-200:
+        params:
+          actions:
+          - from: .params.actions.HealthCheck.wait_http_ok
+    helm:
+      apply:
+        params:
+          actions:
+          - from: .params.actions.Helm.${context.container_types.helm.apply.type}.apply
+      destroy:
+        params:
+          actions:
+          - from: .params.actions.Helm.delete
+      params:
+        pre_actions:
+        - from: .params.actions.Helm.init
+      status:
+        params:
+          actions:
+          - from: .params.actions.Helm.status
+    kubectl:
+      pod-logs:
+        params:
+          actions:
+          - from: .params.actions.Kubectl.get_pod_name
+          - from: .params.actions.Kubectl.get_pod_logs
+            pod_name: ${context.results.action.Kubectl_get_pod_name.stdout}
+      rescale:
+        params:
+          actions:
+          - from: .params.actions.Kubectl.scale_down_up
+      status:
+        params:
+          actions:
+          - from: .params.actions.Kubectl.get_pods
+  containers:
+    common:
+      params:
+        image: michaeltigr/zebra-build-php-drush-docman:0.0.87
+        name: common
+    gcloud:
+      auth:
+        params:
+          blocks:
+          - from: .params.blocks.gcloud.auth
+      params:
+        image: google/cloud-sdk:alpine
+        name: gcloud
+    helm:
+      destroy:
+        params:
+          blocks:
+          - from: .params.blocks.helm.destroy
+      params:
+        image: lachlanevenson/k8s-helm:v2.7.2
+        name: kubectl
+      status:
+        params:
+          blocks:
+          - from: .params.blocks.helm.status
+    kubectl:
+      params:
+        image: lachlanevenson/k8s-kubectl:v1.8.2
+        name: kubectl
+      status:
+        params:
+          blocks:
+          - from: .params.blocks.kubectl.status
+    none:
+      params:
+        name: none
+    options:
+      ssh_tunnel:
+        params:
+          pre_blocks:
+          - actions:
+            - from: .params.actions.Ssh.tunnel
+    params:
+      execute: true
+      k8s:
+        alwaysPullImage: true
+        command: cat
+        resourceLimitCpu: 500m
+        resourceLimitMemory: 1000Mi
+        resourceRequestCpu: 50m
+        resourceRequestMemory: 200Mi
+        ttyEnabled: true
+  jobs:
+    common:
+      bump_stable:
+        params:
+          pipeline:
+            from: .params.pipelines.bump_stable
+      helm:
+        destroy:
+          params:
+            pipeline:
+              from: .params.pipelines.helm.destroy
+        install:
+          params:
+            pipeline:
+              from: .params.pipelines.helm.install
+        status:
+          params:
+            pipeline:
+              from: .params.pipelines.helm.status
+      params:
+        type: common
+    folder:
+      dev:
+        params:
+          branch: develop
+          context:
+            environment: dev
+      helm:
+        general:
+          install:
+            params:
+              jobs:
+                destroy:
+                  from: .params.jobs.common.helm.destroy
+                install:
+                  from:
+                  - .params.jobs.common
+                  pipeline:
+                    from: .params.pipelines.helm.install
+                status:
+                  from: .params.jobs.common.helm.status
+      mr:
+        params:
+          context:
+            environment: mr
+      params:
+        type: folder
+      preprod:
+        params:
+          branch: master
+          context:
+            environment: preprod
+      prod:
+        params:
+          branch: master
+          context:
+            environment: prod
+    gitlab:
+      mr:
+        params:
+          branch: ${GIT_COMMIT}
+      params:
+        name: jobs.gitlab
+      triggers:
+        mr:
+          params:
+            triggers:
+              gitlabPush:
+                buildOnPushEvents: false
+                enableCiSkip: true
+                includeBranches:
+                - master
+                rebuildOpenMergeRequest: source
+        push:
+          develop:
+            params:
+              triggers:
+                gitlabPush:
+                  includeBranches:
+                  - develop
+          master:
+            params:
+              triggers:
+                gitlabPush:
+                  includeBranches:
+                  - master
+          params:
+            triggers:
+              gitlabPush:
+                buildOnMergeRequestEvents: false
+                buildOnPushEvents: true
+                enableCiSkip: true
+      webhooks:
+        mr:
+          params:
+            webhooks:
+            - merge_requests_events: true
+              push_events: false
+        push:
+          params:
+            webhooks:
+            - push_events: true
+  options:
+    actions:
+      pre:
+        ssh_tunnel:
+          params:
+            pre_blocks:
+            - actions:
+              - from: .params.actions.Ssh.tunnel
+    containers:
+      build:
+        tools:
+          params:
+            image: michaeltigr/zebra-build-php-drush-docman-tools:0.0.87
+      k8s:
+        large:
+          params:
+            k8s:
+              resourceLimitCpu: 2000m
+              resourceLimitMemory: 2000Mi
+              resourceRequestCpu: 500m
+              resourceRequestMemory: 1000Mi
+        medium:
+          params:
+            k8s:
+              resourceLimitCpu: 1000m
+              resourceLimitMemory: 1500Mi
+              resourceRequestCpu: 100m
+              resourceRequestMemory: 500Mi
+        small:
+          params:
+            k8s:
+              resourceLimitCpu: 500m
+              resourceLimitMemory: 1000Mi
+              resourceRequestCpu: 50m
+              resourceRequestMemory: 250Mi
+  pipelines:
+    bump_stable:
+      params:
+        pods:
+        - containers:
+          - blocks:
+            - from: .params.blocks.bump-stable
+            from: .params.containers.common
+          from: .params.pods.default
+    helm:
+      destroy:
+        params:
+          pods:
+          - from: .params.pods.helm.destroy
+      install:
+        params:
+          pods:
+          - containers:
+            - blocks:
+              - from: .params.blocks.helm.${context.container_types.helm.apply.type}.apply
+              - from: .params.blocks.helm.status
+              from: .params.containers.helm
+            from: .params.pods.helm
+      status:
+        params:
+          pods:
+          - containers:
+            - from: .params.containers.helm.status
+            - from: .params.containers.kubectl.status
+            from: .params.pods.helm
+    params:
+      name: default
+  pods:
+    default:
+      params:
+        name: default
+    helm:
+      destroy:
+        params:
+          containers:
+          - from: .params.containers.helm.destroy
+      params:
+        pre_containers:
+        - blocks:
+          - from: .params.blocks.gcloud.auth
+          from: .params.containers.gcloud
+    master:
+      params:
+        containerized: false
+        name: master
+    params:
+      containerized: true
+      unipipe_retrieve_config: true
+  processors:
+    from:
+      mode: config
+sources:
+  env:
+    type: env
+tags:
+- single
+- helm
+`)
+
+var testHelmProdInstallJobResult = []byte(`---
+from_processed:
+- .params.jobs.common
+pipeline:
+  from_processed:
+  - .params.pipelines.helm.install
+  name: default
+  pods:
+  - containerized: true
+    containers:
+    - blocks:
+      - from_processed:
+        - .params.blocks.helm.${context.container_types.helm.apply.type}.apply (.params.blocks.helm.chart.apply)
+        pre_actions:
+        - from: .params.actions.Helm.init
+      - actions:
+        - from: .params.actions.Helm.status
+        from_processed:
+        - .params.blocks.helm.status
+        pre_actions:
+        - from: .params.actions.Helm.init
+      execute: true
+      from_processed:
+      - .params.containers.helm
+      image: lachlanevenson/k8s-helm:v2.7.2
+      k8s:
+        alwaysPullImage: true
+        command: cat
+        resourceLimitCpu: 500m
+        resourceLimitMemory: 1000Mi
+        resourceRequestCpu: 50m
+        resourceRequestMemory: 200Mi
+        ttyEnabled: true
+      name: kubectl
+    from_processed:
+    - .params.pods.helm
+    pre_containers:
+    - blocks:
+      - actions:
+        - from: .params.actions.GCloud.auth
+        from_processed:
+        - .params.blocks.gcloud.auth
+      execute: true
+      from_processed:
+      - .params.containers.gcloud
+      image: google/cloud-sdk:alpine
+      k8s:
+        alwaysPullImage: true
+        command: cat
+        resourceLimitCpu: 500m
+        resourceLimitMemory: 1000Mi
+        resourceRequestCpu: 50m
+        resourceRequestMemory: 200Mi
+        ttyEnabled: true
+      name: gcloud
+    unipipe_retrieve_config: true
+type: common
+`)

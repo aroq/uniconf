@@ -227,16 +227,20 @@ func (s *SourceEnv) LoadConfigEntity(configMap map[string]interface{}) (*ConfigE
 }
 
 func (s *SourceConfigMap) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error) {
-	if value, ok := s.configMap[configMap["id"].(string)]; ok {
-		switch value.(type) {
-		case map[string]interface{}:
-			configMap["config"] = value
-		case []byte:
-			// TODO: check if JSON format is needed at all here.
-			format := "yaml"
-			configMap["config"], _ = unitool.UnmarshalByType(format, value.([]byte))
+	if _, ok := s.ConfigEntity(configMap["id"].(string)); !ok {
+		if value, ok := s.configMap[configMap["id"].(string)]; ok {
+			switch value.(type) {
+			case map[string]interface{}:
+				configMap["config"] = value
+			case []byte:
+				// TODO: check if JSON format is needed at all here.
+				format := "yaml"
+				configMap["config"], _ = unitool.UnmarshalByType(format, value.([]byte))
+			}
+			return s.Source.LoadConfigEntity(configMap)
 		}
-		return s.Source.LoadConfigEntity(configMap)
+	} else {
+		return nil, errors.New(fmt.Sprintf("config entity already loaded: %s", configMap["id"].(string)))
 	}
 	return nil, errors.New(fmt.Sprintf("source config map entry %s doesnt'exists", configMap["id"].(string)))
 }

@@ -134,9 +134,6 @@ var yamlExample = []byte(`type: common
 branch: develop
 context:
   environment: dev
-from_processed: true
-from_processed_mode: config
-from_source: .params.jobs.common
 pipeline:
   name: helm.install_jenkins
   pods:
@@ -147,9 +144,6 @@ pipeline:
         actions:
         - from: .params.actions.Helm.${context.container_types.helm.apply.type}.apply
         name: helm.chart_dir.apply
-        from_processed: true
-        from_processed_mode: config
-        from_source: .params.blocks.helm.chart_dir.apply
       - pre_actions:
         - from: .params.actions.Helm.init
         actions:

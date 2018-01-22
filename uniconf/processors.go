@@ -55,6 +55,9 @@ func FromProcess(source interface{}, path string, phase *Phase) (result interfac
 }
 
 func InterpolateString(input string, config map[string]interface{}) string {
+	if config == nil {
+		config = u.flatConfig
+	}
 	if strings.Contains(input, "${") {
 		r, _ := regexp.Compile("(.*\\$\\{)(context\\.)(.*\\})")
 		input = r.ReplaceAllString(input, "$1$3")
