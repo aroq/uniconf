@@ -86,10 +86,6 @@ func initConfig() {
 				Callback: uniconf.Load,
 			},
 			{
-				Name:     "process_contexts",
-				Callback: uniconf.ProcessContexts,
-			},
-			{
 				Name:     "flatten_config",
 				Callback: uniconf.FlattenConfig,
 			},

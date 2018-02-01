@@ -88,7 +88,7 @@ func TestCollectKeyParamsFromJsonPath(t *testing.T) {
 	}
 
 	path := "params.jobs.dev"
-	params, _ := CollectKeyParamsFromJsonPath(src, path, "params")
+	params, _ := DeepCollectParams(src, path, "params")
 	//t.Logf("collectKeyParamsFromJsonPath result: %v", params)
 
 	path = "jobs_param"

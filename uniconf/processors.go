@@ -32,7 +32,7 @@ func FromProcess(source interface{}, path string, phase *Phase) (result interfac
 		return result, true, true, true, from
 	}
 
-	processorParams, err := unitool.CollectKeyParamsFromJsonPath(u.config, from, "processors")
+	processorParams, err := unitool.DeepCollectParams(u.config, from, "processors")
 	if err != nil {
 		log.Errorf("Error: %v", err)
 	}
@@ -42,7 +42,7 @@ func FromProcess(source interface{}, path string, phase *Phase) (result interfac
 			modeParam := fromMode.(string)
 			phaseName := phaseFullName(phase)
 			if modeParam != "" && strings.HasPrefix(phaseName, modeParam) {
-				result, err := unitool.CollectKeyParamsFromJsonPath(u.config, from, "params")
+				result, err := unitool.DeepCollectParams(u.config, from, "params")
 				if err != nil {
 					log.Errorf("Error: %v", err)
 				}

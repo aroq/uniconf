@@ -94,8 +94,6 @@ func TestLoad(t *testing.T) {
 		},
 	})
 
-	uniconf.SetContexts("jobs.dev.jobs.install")
-
 	uniconf.Execute()
 
 	t.Run("u.config defined", func(t *testing.T) {
@@ -113,7 +111,7 @@ func TestLoad(t *testing.T) {
 	})
 	t.Run("Collect(params.jobs.common.helm.install).pipeline.from = '.params.pipelines.helm.install'", func(t *testing.T) {
 		path := "params.jobs.common.helm.install"
-		params, _ := unitool.CollectKeyParamsFromJsonPath(uniconf.Config(), path, "params")
+		params, _ := unitool.DeepCollectParams(uniconf.Config(), path, "params")
 		assert.Equal(t, unitool.SearchMapWithPathStringPrefixes(params, "pipeline.from"), ".params.pipelines.helm.install", "Deep key search failed: %s", path)
 	})
 
@@ -143,8 +141,6 @@ func TestLoadWithFlattenConfig(t *testing.T) {
 		},
 	})
 
-	uniconf.SetContexts("jobs.dev.jobs.install")
-
 	uniconf.Execute()
 
 	t.Run("InterpolateString", func(t *testing.T) {
@@ -167,18 +163,12 @@ func TestLoadWithFlattenConfig(t *testing.T) {
 func TestLoadFromProcess(t *testing.T) {
 	PrepareTest()
 
-	var processKeysResult interface{}
-
 	uniconf.AddPhase(&uniconf.Phase{
 		Name: "config",
 		Phases: []*uniconf.Phase{
 			{
 				Name:     "load",
 				Callback: uniconf.Load,
-			},
-			{
-				Name:     "process_contexts",
-				Callback: uniconf.ProcessContexts,
 			},
 			{
 				Name:     "flatten_config",
@@ -197,33 +187,44 @@ func TestLoadFromProcess(t *testing.T) {
 						},
 					},
 				},
-				Result: &processKeysResult,
+			},
+		},
+	})
+
+	var job interface{}
+
+	uniconf.AddPhase(&uniconf.Phase{
+		Name: "job",
+		Phases: []*uniconf.Phase{
+			{
+				Name:     "get",
+				Callback: uniconf.DeepCollectChildren,
+				Args: []interface{}{
+					"prod.install",
+					"jobs",
+				},
+				Result: &job,
 			},
 			{
-				Name:     "print",
-				Callback: uniconf.PrintConfig,
+				Name:     "set_context",
+				Callback: uniconf.SetContext,
 				Args: []interface{}{
-					"jobs.prod.jobs.install",
+					"job",
+					&job,
 				},
 			},
 		},
 	})
 
-	uniconf.SetContexts("jobs.prod.jobs.install")
-
 	uniconf.Execute()
 
-	job, _ := unitool.CollectInvertedKeyParamsFromJsonPath(uniconf.Config(), "prod.install", "jobs")
-
-	path := "pipeline.name"
-	value := "default"
-	result := unitool.SearchMapWithPathStringPrefixes(job, path)
-	if result != value {
-		t.Errorf("Deep key search failed: %s, expected value: %v, real value: %v", path, value, result)
-	}
+	t.Run("environment", func(t *testing.T) {
+		assert.Contains(t, uniconf.Config(), "environment", "no 'environment' key in config")
+		assert.Equal(t, uniconf.Config()["environment"], "prod", "environment should equal 'prod'")
+	})
 
 	t.Run("Compare processed job result", func(t *testing.T) {
-		job := unitool.SearchMapWithPathStringPrefixes(uniconf.Config(), "jobs.prod.jobs.install")
+		//i1, _ := unitool.UnmarshalYaml([]byte(unitool.MarshallYaml(uniconf.Config()["contexts"].(map[string]interface{})["job"])))
 		i1, _ := unitool.UnmarshalYaml([]byte(unitool.MarshallYaml(job)))
 		i2, _ := unitool.UnmarshalYaml(testHelmProdInstallJobResult)
 		result, err := AreEqualInterfaces(i1, i2)
@@ -1095,7 +1096,11 @@ tags:
 `)
 
 var testHelmProdInstallJobResult = []byte(`---
+branch: master
+context:
+  environment: prod
 from_processed:
+- .params.jobs.folder.prod
 - .params.jobs.common
 pipeline:
   from_processed:

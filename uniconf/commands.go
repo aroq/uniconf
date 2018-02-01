@@ -8,7 +8,7 @@ import (
 
 func Collect(jsonPath, key string) string { return u.collect(jsonPath, key) }
 func (u *Uniconf) collect(jsonPath, key string) string {
-	result, _ := unitool.CollectKeyParamsFromJsonPath(u.config, jsonPath, key)
+	result, _ := unitool.DeepCollectParams(u.config, jsonPath, key)
 	return unitool.MarshallYaml(result)
 }
 

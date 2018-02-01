@@ -118,11 +118,6 @@ func (u *Uniconf) execute(parentPhase *Phase, phases []*Phase) {
 	}
 }
 
-func SetContexts(contexts ...string) { u.setContexts(contexts...) }
-func (u *Uniconf) setContexts(contexts ...string) {
-	u.contexts = append(u.contexts, contexts...)
-}
-
 func Config() map[string]interface{} { return u.Config() }
 func (u *Uniconf) Config() map[string]interface{} {
 	return u.config
