@@ -1,0 +1,196 @@
+package uniconf
+
+import (
+	"bytes"
+	"fmt"
+	"github.com/aroq/uniconf/unitool"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"os"
+	"strconv"
+	"strings"
+)
+
+func (u *Uniconf) setCurrentPhase(name string) {
+	u.currentPhase = u.phases[name]
+}
+
+func AddPhase(phase *Phase) { u.addPhase(phase) }
+func (u *Uniconf) addPhase(phase *Phase) {
+	u.phases[phase.Name] = phase
+	u.phasesList = append(u.phasesList, phase)
+}
+
+// Load loads configuration.
+func Load(inputs []interface{}) (interface{}, error) { return u.load(inputs) }
+func (u *Uniconf) load(inputs []interface{}) (interface{}, error) {
+	log.Info("load")
+	if len(u.config) == 0 {
+		log.Info("config is not loaded yet")
+		os.RemoveAll(appTempFilesPath)
+
+		if u.rootSource != nil {
+			configMap := map[string]interface{}{
+				"id": "root",
+			}
+			if c, err := u.rootSource.LoadConfigEntity(configMap); err == nil {
+				u.mergeConfigEntity(c)
+			} else {
+				log.Errorf("Config entity is not loaded")
+			}
+		}
+	}
+	log.Info("load end")
+	return nil, nil
+}
+
+func PrintHistory(inputs []interface{}) (interface{}, error) { return u.printHistory(inputs) }
+func (u *Uniconf) printHistory(inputs []interface{}) (interface{}, error) {
+	if len(u.history) > 0 {
+		fmt.Println("Config history:")
+		fmt.Println(unitool.MarshallYaml(u.history))
+	}
+	return nil, nil
+}
+
+func DeepCollectChildren(inputs []interface{}) (interface{}, error) { return u.deepCollectChildren(inputs) }
+func (u *Uniconf) deepCollectChildren(inputs []interface{}) (interface{}, error) {
+	if len(inputs) > 1 {
+		path := inputs[0].(string)
+		key := inputs[1].(string)
+		object, _ := unitool.DeepCollectChildren(u.config, path, key)
+		return object, nil
+	} else {
+		return nil, nil
+	}
+}
+
+func SetContext(inputs []interface{}) (interface{}, error) { return u.setContext(inputs) }
+func (u *Uniconf) setContext(inputs []interface{}) (interface{}, error) {
+	if len(inputs) > 1 {
+		contextName := inputs[0].(string)
+		i2 := inputs[1].(*interface{})
+		i3 := *i2
+		object := i3.(map[string]interface{})
+		if object != nil {
+			if _, ok := u.config["contexts"]; !ok {
+				u.config["contexts"] = make(map[string]interface{})
+			}
+			u.config["contexts"].(map[string]interface{})[contextName] = object
+			if context, ok := object["context"]; ok {
+				unitool.Merge(u.config, context)
+			}
+		}
+	}
+	return nil, nil
+}
+
+func FlattenConfig(inputs []interface{}) (interface{}, error) { return u.flattenConfig(inputs) }
+func (u *Uniconf) flattenConfig(inputs []interface{}) (interface{}, error) {
+	viper := viper.New()
+	var yamlConfig = []byte(GetYaml())
+	viper.SetConfigType("yaml")
+	viper.ReadConfig(bytes.NewBuffer(yamlConfig))
+	u.flatConfig = u.allSettings(viper)
+	return nil, nil
+}
+
+func PrintConfig(inputs []interface{}) (interface{}, error) { return u.printConfig(inputs) }
+func (u *Uniconf) printConfig(inputs []interface{}) (interface{}, error) {
+	if len(inputs) > 0 {
+		path := inputs[0].(string)
+		fmt.Println(unitool.MarshallYaml(unitool.SearchMapWithPathStringPrefixes(u.config, path)))
+	} else {
+		fmt.Println(unitool.MarshallYaml(u.config))
+	}
+	return nil, nil
+}
+
+func processKeys(key string, source interface{}, parent interface{}, path string, phase *Phase, processors []*Processor, depth int, excludeKeys []string) {
+	//log.Debugf("processKeys path: %s, key: %s", path, key)
+	if depth > -100 {
+		switch source.(type) {
+		case string:
+			for _, processor := range processors {
+				if ((processor.IncludeKeys != nil && stringListContains(processor.IncludeKeys, key)) || processor.IncludeKeys == nil) &&
+					((processor.ExcludeKeys != nil && !stringListContains(processor.ExcludeKeys, key)) || processor.ExcludeKeys == nil) {
+					value := source.(string)
+					result, processed, mergeToParent, removeParentKey, replaceSource := processor.Callback(value, path, phase)
+					if mergeToParent {
+						unitool.Merge(parent, result)
+					}
+					if removeParentKey {
+						delete(parent.(map[string]interface{}), key)
+					}
+					if replaceSource != nil {
+						value = replaceSource.(string)
+					}
+					if processed && removeParentKey {
+						log.Debugf("Key processed: %s %v", path, value)
+						if _, ok := parent.(map[string]interface{})[key+"_processed"]; !ok {
+							parent.(map[string]interface{})[key+"_processed"] = make([]string, 0)
+							keyProcessed := source.(string) + " (" + value + ")"
+							if source.(string) == value {
+								keyProcessed = value
+							}
+							parent.(map[string]interface{})[key+"_processed"] = append(parent.(map[string]interface{})[key+"_processed"].([]string), keyProcessed)
+						}
+					}
+					if replaceSource != nil {
+						source = replaceSource
+					}
+					if mergeToParent {
+						parts := strings.Split(path, ".")
+						p := strings.Join(parts[:len(parts)-1], ".")
+						processKeys("", parent, source, p, phase, processors, depth, excludeKeys)
+					}
+				}
+			}
+		case []interface{}:
+			l := source.([]interface{})
+			for i := 0; i < len(l); i++ {
+				p := path
+				switch l[i].(type) {
+				case string:
+				default:
+					p = strings.Join([]string{path, strconv.Itoa(i)}, ".")
+				}
+				processKeys(key, l[i], parent, p, phase, processors, depth, excludeKeys)
+			}
+		case map[string]interface{}:
+			for k, v := range source.(map[string]interface{}) {
+				depth -= 1
+				if !stringListContains(excludeKeys, k) {
+					processKeys(k, v, source, strings.Join([]string{path, k}, "."), phase, processors, depth, excludeKeys)
+				} else {
+					log.Debugf("Key skipped as ecluded by parent: %s", k)
+				}
+			}
+		}
+	}
+}
+
+func stringListContains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+// Process processes configuration.
+func ProcessKeys(inputs []interface{}) (interface{}, error) { return u.processKeys(inputs) }
+func (u *Uniconf) processKeys(inputs []interface{}) (interface{}, error) {
+	path := inputs[0].(string)
+	keys := strings.Split(path, ".")
+	keyPrefix := inputs[1].(string)
+	processors := inputs[2].([]*Processor)
+	p := ""
+	for _, v := range keys {
+		p = strings.Trim(p+".jobs."+v, ".")
+		source := unitool.SearchMapWithPathStringPrefixes(u.config, p)
+		processKeys("", source, nil, p, u.currentPhase, processors, 1, []string{keyPrefix})
+	}
+	return u.config, nil
+}

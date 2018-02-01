@@ -19,13 +19,14 @@ import (
 	"os"
 
 	"github.com/aroq/uniconf/uniconf"
-	homedir "github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"log"
+	"path"
 )
 
 var cfgFile string
+
+var cfgEnvVar string
 
 var outputFormat string
 
@@ -40,6 +41,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		uniconf.Execute()
 		if outputFormat == "yaml" {
 			fmt.Println(uniconf.GetYaml())
 		}
@@ -61,41 +63,52 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "uniconf", "", "uniconf file (default is $HOME/.uniconf.yaml)")
+	// Global persistent flags.
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config file", "c", path.Join("config.yaml"), "config file ('.unipipe/config.yaml' by default)")
+	rootCmd.PersistentFlags().StringVarP(&cfgEnvVar, "config env var", "e", "UNICONF", "config ENV VAR name ('UNICONF' by default)")
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "yaml", "output format, e.g. 'yaml' or 'json' ('yaml' by default)")
-	viper.BindPFlag("output", rootCmd.PersistentFlags().Lookup("output"))
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-// initConfig reads in uniconf file and ENV variables if set.
+// initConfig initializes Uniconf.
 func initConfig() {
-	if cfgFile != "" {
-		// Use uniconf file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
+	uniconf.AddSource(uniconf.NewSourceConfigMap("root", map[string]interface{}{
+		"configMap": map[string]interface{}{
+			"root": defaultUniconfConfig(),
+		},
+	}))
+	uniconf.SetRootSource("root")
 
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			log.Fatal(err)
-			os.Exit(1)
-		}
+	uniconf.AddPhase(&uniconf.Phase{
+		Name: "config",
+		Phases: []*uniconf.Phase{
+			{
+				Name:     "load",
+				Callback: uniconf.Load,
+			},
+			{
+				Name:     "flatten_config",
+				Callback: uniconf.FlattenConfig,
+			},
+		},
+	})
+}
 
-		// Search uniconf in home directory with name ".uniconf" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".uniconf")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a uniconf file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		log.Println("Using uniconf file:", viper.ConfigFileUsed())
+// defaultUniconfConfig provides default Uniconf configuration.
+func defaultUniconfConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"sources": map[string]interface{}{
+			"env": map[string]interface{}{
+				"type": "env",
+			},
+			"project": map[string]interface{}{
+				"type": "file",
+				"path": ".unipipe",
+			},
+		},
+		"from": []interface{}{
+			"env:UNICONF",
+			"project:/" + cfgFile,
+			"env:" + cfgEnvVar,
+		},
 	}
 }
