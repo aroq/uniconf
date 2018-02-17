@@ -36,20 +36,19 @@ func FromProcess(source interface{}, path string, phase *Phase) (result interfac
 	if err != nil {
 		log.Errorf("Error: %v", err)
 	}
-	if processorParams != nil {
-		fromMode := unitool.SearchMapWithPathStringPrefixes(processorParams, "from.mode")
-		if fromMode != nil {
-			modeParam := fromMode.(string)
-			phaseName := phaseFullName(phase)
-			if modeParam != "" && strings.HasPrefix(phaseName, modeParam) {
-				result, err := unitool.DeepCollectParams(u.config, from, "params")
-				if err != nil {
-					log.Errorf("Error: %v", err)
-				}
-				processedFromKeys[from] = result
-				return result, true, true, true, from
-			}
+	fromMode := ""
+	if len(processorParams) > 0 {
+		fromMode = unitool.SearchMapWithPathStringPrefixes(processorParams, "from.mode").(string)
+	}
+	modeParam := fromMode
+	phaseName := phaseFullName(phase)
+	if (modeParam != "" && strings.HasPrefix(phaseName, modeParam)) || (modeParam == "") {
+		result, err := unitool.DeepCollectParams(u.config, from, "params")
+		if err != nil {
+			log.Errorf("Error: %v", err)
 		}
+		processedFromKeys[from] = result
+		return result, true, true, true, from
 	}
 	return nil, false, false, false, nil
 }

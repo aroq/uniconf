@@ -264,7 +264,8 @@ func DeepCollectParams(source map[string]interface{}, path, key string) (map[str
 			params = Merge(params, result).(map[string]interface{})
 		}
 	}
-	return params, nil
+	params, err = DeepCopyMap(params)
+	return params, err
 }
 
 // DeepCollectChildren collects params from nesting structures

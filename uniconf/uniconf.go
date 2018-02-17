@@ -29,7 +29,7 @@ type Phase struct {
 	Phases      []*Phase
 	ParentPhase *Phase
 	Result      *interface{}
-	Error       error
+	Error       *error
 }
 
 type Callback struct {
@@ -56,7 +56,7 @@ var configProviders []func() interface{}
 const (
 	appTempFilesPath       = ".unipipe_temp"
 	sourceMapElementName   = "sources"
-	includeListElementName = "from"
+	IncludeListElementName = "from"
 	sourcesStoragePath     = "sources"
 	mainConfigFileName     = "config.yaml"
 	includesPath           = "scenarios"
@@ -105,11 +105,14 @@ func (u *Uniconf) execute(parentPhase *Phase, phases []*Phase) {
 		log.Debugf("Execute phase: %s", phaseFullName(phase))
 		if phase.Callback != nil {
 			result, err := phase.Callback(phase.Args)
+			if err != nil {
+				log.Errorf("error: %v", err)
+			}
 			if phase.Result != nil {
 				*phase.Result = result
 			}
 			if phase.Error != nil {
-				phase.Error = err
+				phase.Error = &err
 			}
 		}
 		if phase.Phases != nil {

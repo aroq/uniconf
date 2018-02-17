@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"errors"
 )
 
 func (u *Uniconf) setCurrentPhase(name string) {
@@ -65,6 +66,43 @@ func (u *Uniconf) deepCollectChildren(inputs []interface{}) (interface{}, error)
 	}
 }
 
+func ProcessContext(inputs []interface{}) (interface{}, error) { return u.processContext(inputs) }
+func (u *Uniconf) processContext(inputs []interface{}) (interface{}, error) {
+	if len(inputs) > 1 {
+		entityName := inputs[0].(string)
+		entityId := inputs[1].(string)
+		if _, ok := u.config["entities"]; ok {
+			entityHandler := u.config["entities"].(map[string]interface{})[entityName].(map[string]interface{})
+			childrenKey := entityHandler["children_key"].(string)
+
+			processors := make([]*Processor, 0)
+			if processorsList, ok := entityHandler["processors"]; ok {
+				for _, processor := range processorsList.([]interface{}) {
+					if processor.(string) == "from_processor" {
+						processors = append(
+							processors,
+							&Processor{
+								Callback:    FromProcess,
+								IncludeKeys: []string{"from"},
+							})
+					}
+				}
+			}
+			ProcessKeys([]interface{}{entityId, childrenKey, processors})
+
+			switch entityHandler["retrieve_handler"].(string) {
+			case "DeepCollectChildren":
+				entity, _ := unitool.DeepCollectChildren(u.config, entityId, childrenKey)
+				u.setContextObject(entityHandler["context_name"].(string), entity)
+				return entity, nil
+			}
+		} else {
+			return nil, errors.New("config entities are not defined")
+		}
+	}
+	return nil, nil
+}
+
 func SetContext(inputs []interface{}) (interface{}, error) { return u.setContext(inputs) }
 func (u *Uniconf) setContext(inputs []interface{}) (interface{}, error) {
 	if len(inputs) > 1 {
@@ -73,16 +111,20 @@ func (u *Uniconf) setContext(inputs []interface{}) (interface{}, error) {
 		i3 := *i2
 		object := i3.(map[string]interface{})
 		if object != nil {
-			if _, ok := u.config["contexts"]; !ok {
-				u.config["contexts"] = make(map[string]interface{})
-			}
-			u.config["contexts"].(map[string]interface{})[contextName] = object
-			if context, ok := object["context"]; ok {
-				unitool.Merge(u.config, context)
-			}
+			u.setContextObject(contextName, object)
 		}
 	}
 	return nil, nil
+}
+
+func (u *Uniconf) setContextObject(contextName string, context map[string]interface{}) {
+	if _, ok := u.config["contexts"]; !ok {
+		u.config["contexts"] = make(map[string]interface{})
+	}
+	u.config["contexts"].(map[string]interface{})[contextName] = context
+	if context, ok := context["context"]; ok {
+		unitool.Merge(u.config, context)
+	}
 }
 
 func FlattenConfig(inputs []interface{}) (interface{}, error) { return u.flattenConfig(inputs) }
@@ -116,6 +158,7 @@ func processKeys(key string, source interface{}, parent interface{}, path string
 					((processor.ExcludeKeys != nil && !stringListContains(processor.ExcludeKeys, key)) || processor.ExcludeKeys == nil) {
 					value := source.(string)
 					result, processed, mergeToParent, removeParentKey, replaceSource := processor.Callback(value, path, phase)
+					result, _ = unitool.DeepCopyMap(result.(map[string]interface{}))
 					if mergeToParent {
 						unitool.Merge(parent, result)
 					}
@@ -129,12 +172,12 @@ func processKeys(key string, source interface{}, parent interface{}, path string
 						log.Debugf("Key processed: %s %v", path, value)
 						if _, ok := parent.(map[string]interface{})[key+"_processed"]; !ok {
 							parent.(map[string]interface{})[key+"_processed"] = make([]string, 0)
-							keyProcessed := source.(string) + " (" + value + ")"
-							if source.(string) == value {
-								keyProcessed = value
-							}
-							parent.(map[string]interface{})[key+"_processed"] = append(parent.(map[string]interface{})[key+"_processed"].([]string), keyProcessed)
 						}
+						keyProcessed := source.(string) + " (" + value + ")"
+						if source.(string) == value {
+							keyProcessed = value
+						}
+						parent.(map[string]interface{})[key+"_processed"] = append(parent.(map[string]interface{})[key+"_processed"].([]string), keyProcessed)
 					}
 					if replaceSource != nil {
 						source = replaceSource
@@ -185,11 +228,18 @@ func (u *Uniconf) processKeys(inputs []interface{}) (interface{}, error) {
 	path := inputs[0].(string)
 	keys := strings.Split(path, ".")
 	keyPrefix := inputs[1].(string)
+	if keyPrefix != "" {
+		keyPrefix = "." + keyPrefix
+	}
 	processors := inputs[2].([]*Processor)
 	p := ""
 	for _, v := range keys {
-		p = strings.Trim(p+".jobs."+v, ".")
-		source := unitool.SearchMapWithPathStringPrefixes(u.config, p)
+		p = strings.Trim(p+keyPrefix+"."+v, ".")
+		var source interface{}
+		source = u.config
+		if p != "" {
+			source = unitool.SearchMapWithPathStringPrefixes(u.config, p)
+		}
 		processKeys("", source, nil, p, u.currentPhase, processors, 1, []string{keyPrefix})
 	}
 	return u.config, nil

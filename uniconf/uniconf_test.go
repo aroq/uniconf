@@ -163,6 +163,7 @@ func TestLoadWithFlattenConfig(t *testing.T) {
 func TestLoadFromProcess(t *testing.T) {
 	PrepareTest()
 
+	var job interface{}
 	uniconf.AddPhase(&uniconf.Phase{
 		Name: "config",
 		Phases: []*uniconf.Phase{
@@ -175,43 +176,13 @@ func TestLoadFromProcess(t *testing.T) {
 				Callback: uniconf.FlattenConfig,
 			},
 			{
-				Name:     "process",
-				Callback: uniconf.ProcessKeys,
-				Args: []interface{}{
-					"prod.install",
-					"jobs",
-					[]*uniconf.Processor{
-						{
-							Callback:    uniconf.FromProcess,
-							IncludeKeys: []string{"from"},
-						},
-					},
-				},
-			},
-		},
-	})
-
-	var job interface{}
-
-	uniconf.AddPhase(&uniconf.Phase{
-		Name: "job",
-		Phases: []*uniconf.Phase{
-			{
-				Name:     "get",
-				Callback: uniconf.DeepCollectChildren,
-				Args: []interface{}{
-					"prod.install",
-					"jobs",
-				},
-				Result: &job,
-			},
-			{
-				Name:     "set_context",
-				Callback: uniconf.SetContext,
+				Name:     "get_job",
+				Callback: uniconf.ProcessContext,
 				Args: []interface{}{
 					"job",
-					&job,
+					"prod.install",
 				},
+				Result: &job,
 			},
 		},
 	})
@@ -224,7 +195,6 @@ func TestLoadFromProcess(t *testing.T) {
 	})
 
 	t.Run("Compare processed job result", func(t *testing.T) {
-		//i1, _ := unitool.UnmarshalYaml([]byte(unitool.MarshallYaml(uniconf.Config()["contexts"].(map[string]interface{})["job"])))
 		i1, _ := unitool.UnmarshalYaml([]byte(unitool.MarshallYaml(job)))
 		i2, _ := unitool.UnmarshalYaml(testHelmProdInstallJobResult)
 		result, err := AreEqualInterfaces(i1, i2)
@@ -422,7 +392,7 @@ params:
             - from: .params.blocks.kubectl.status
     helm:
       params:
-        name: kubectl
+        name: helm
         image: lachlanevenson/k8s-helm:v2.7.2
       status:
         params:
@@ -547,6 +517,13 @@ jobs:
 `)
 
 var testDrupipeV3Yaml = []byte(`---
+entities:
+  job:
+    retrieve_handler: DeepCollectChildren
+    children_key: jobs
+    context_name: job
+    processors:
+      - from_processor
 params:
   actions:
     processors:
@@ -690,6 +667,13 @@ params:
 `)
 
 var testLoadResult = []byte(`---
+entities:
+  job:
+    retrieve_handler: DeepCollectChildren
+    children_key: jobs
+    context_name: job
+    processors:
+      - from_processor
 container_types:
   helm:
     apply:
@@ -862,7 +846,7 @@ params:
           - from: .params.blocks.helm.destroy
       params:
         image: lachlanevenson/k8s-helm:v2.7.2
-        name: kubectl
+        name: helm
       status:
         params:
           blocks:
@@ -1132,7 +1116,7 @@ pipeline:
         resourceRequestCpu: 50m
         resourceRequestMemory: 200Mi
         ttyEnabled: true
-      name: kubectl
+      name: helm
     from_processed:
     - .params.pods.helm
     pre_containers:

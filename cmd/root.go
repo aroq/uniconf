@@ -15,13 +15,13 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/aroq/uniconf/uniconf"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"path"
+	"fmt"
 )
 
 var cfgFile string
@@ -41,6 +41,40 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		uniconf.AddPhase(&uniconf.Phase{
+			Name: "config",
+			Phases: []*uniconf.Phase{
+				{
+					Name:     "load",
+					Callback: uniconf.Load,
+				},
+				{
+					Name:     "flatten_config",
+					Callback: uniconf.FlattenConfig,
+				},
+			},
+		})
+
+		uniconf.AddPhase(&uniconf.Phase{
+			Name: "process",
+			Phases: []*uniconf.Phase{
+				{
+					Name:     "process",
+					Callback: uniconf.ProcessKeys,
+					Args: []interface{}{
+						"",
+						"",
+						[]*uniconf.Processor{
+							{
+								Callback:    uniconf.FromProcess,
+								IncludeKeys: []string{uniconf.IncludeListElementName},
+							},
+						},
+					},
+				},
+			},
+		})
+
 		uniconf.Execute()
 		if outputFormat == "yaml" {
 			fmt.Println(uniconf.GetYaml())
@@ -64,7 +98,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global persistent flags.
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config file", "c", path.Join("config.yaml"), "config file ('.unipipe/config.yaml' by default)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config file", "c", path.Join(".unipipe/config.yaml"), "config file ('.unipipe/config.yaml' by default)")
 	rootCmd.PersistentFlags().StringVarP(&cfgEnvVar, "config env var", "e", "UNICONF", "config ENV VAR name ('UNICONF' by default)")
 	rootCmd.PersistentFlags().StringVarP(&outputFormat, "output", "o", "yaml", "output format, e.g. 'yaml' or 'json' ('yaml' by default)")
 }
@@ -77,20 +111,6 @@ func initConfig() {
 		},
 	}))
 	uniconf.SetRootSource("root")
-
-	uniconf.AddPhase(&uniconf.Phase{
-		Name: "config",
-		Phases: []*uniconf.Phase{
-			{
-				Name:     "load",
-				Callback: uniconf.Load,
-			},
-			{
-				Name:     "flatten_config",
-				Callback: uniconf.FlattenConfig,
-			},
-		},
-	})
 }
 
 // defaultUniconfConfig provides default Uniconf configuration.
@@ -102,7 +122,7 @@ func defaultUniconfConfig() map[string]interface{} {
 			},
 			"project": map[string]interface{}{
 				"type": "file",
-				"path": ".unipipe",
+				"path": "",
 			},
 		},
 		"from": []interface{}{

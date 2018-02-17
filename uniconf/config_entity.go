@@ -134,10 +134,10 @@ func (c *ConfigEntity) processSources() {
 				u.sources[k] = source
 
 				if autoloadId := source.Autoload(); autoloadId != "" {
-					if _, ok := c.config[includeListElementName]; !ok {
-						c.config[includeListElementName] = make([]interface{}, 0)
+					if _, ok := c.config[IncludeListElementName]; !ok {
+						c.config[IncludeListElementName] = make([]interface{}, 0)
 					}
-					c.config[includeListElementName] = append(c.config[includeListElementName].([]interface{}), strings.Join([]string{source.Name(), autoloadId}, ":"))
+					c.config[IncludeListElementName] = append(c.config[IncludeListElementName].([]interface{}), strings.Join([]string{source.Name(), autoloadId}, ":"))
 				}
 			} else {
 				log.Printf("Source: %s already loaded", k)
@@ -161,7 +161,7 @@ func (c *ConfigEntity) processIncludes() {
 	includesConfig := make(map[string]interface{})
 	history := make(map[string]interface{})
 
-	if includes, ok := c.config[includeListElementName]; ok {
+	if includes, ok := c.config[IncludeListElementName]; ok {
 		for _, v := range includes.([]interface{}) {
 			sourceName, scenarioId := parseScenario(v.(string))
 			// TODO: check if title is needed.
@@ -179,7 +179,7 @@ func (c *ConfigEntity) processIncludes() {
 			}
 		}
 		c.config["from_processed"] = includes
-		delete(c.config, includeListElementName)
+		delete(c.config, IncludeListElementName)
 	}
 	if c.config != nil {
 		unitool.Merge(includesConfig, c.config)

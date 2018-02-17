@@ -146,7 +146,7 @@ func (s *SourceFile) GetIncludeConfigEntityIds(scenarioId string) ([]string, err
 			includeFileNamesToCheck = append(includeFileNamesToCheck, includeFileName+".yaml", includeFileName+".yml", includeFileName+".json", path.Join(includeFileName, mainConfigFileName))
 		} else {
 			scenarioId = strings.Trim(id, "/")
-			includeFileName := path.Join(s.Path(), id)
+			includeFileName := path.Join(s.Path(), scenarioId)
 			includeFileNamesToCheck = append(includeFileNamesToCheck, includeFileName)
 		}
 	}
