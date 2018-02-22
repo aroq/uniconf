@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// TestMain provides config values and executes tests.
+// PrepareTest provides config values.
 func PrepareTest() {
 	uniconf.New()
 
@@ -69,6 +69,53 @@ func PrepareTest() {
 			"helm/jobs":   testDrupipeHelmJobsYaml,
 			"v3":          testDrupipeV3Yaml,
 			"v3/actions":  testDrupipeV3ActionsYaml,
+		},
+	}))
+}
+
+// PrepareFromHierarchyTest provides config values.
+func PrepareFromHierarchyTest() {
+	uniconf.New()
+
+	// Set environment variables.
+	var envVars = map[string][]byte{
+		"UNICONF": []byte(`{
+			"log_level": "INFO"
+		}`),
+	}
+	for k, v := range envVars {
+		buffer := bytes.NewBuffer(v)
+		s := string(buffer.String())
+		os.Setenv(k, s)
+	}
+
+	// rootConfig provides default configuration.
+	rootConfig := func() map[string]interface{} {
+		return map[string]interface{}{
+			"sources": map[string]interface{}{
+				"env": map[string]interface{}{
+					"type": "env",
+				},
+			},
+			"from": []interface{}{
+				"env:UNICONF",
+				"project:root",
+				"env:UNICONF",
+			},
+		}
+	}
+
+	// Provide sources & config entities.
+	uniconf.AddSource(uniconf.NewSourceConfigMap("root", map[string]interface{}{
+		"configMap": map[string]interface{}{
+			"root": rootConfig(),
+		},
+	}))
+	uniconf.SetRootSource("root")
+
+	uniconf.AddSource(uniconf.NewSourceConfigMap("project", map[string]interface{}{
+		"configMap": map[string]interface{}{
+			"root": testFromHierarchyYaml,
 		},
 	}))
 }
@@ -159,7 +206,7 @@ func TestLoadWithFlattenConfig(t *testing.T) {
 	})
 }
 
-// TestLoad tests config load & basic functions.
+// TestLoadFromProcess tests config load & basic functions.
 func TestLoadFromProcess(t *testing.T) {
 	PrepareTest()
 
@@ -196,10 +243,68 @@ func TestLoadFromProcess(t *testing.T) {
 
 	t.Run("Compare processed job result", func(t *testing.T) {
 		i1, _ := unitool.UnmarshalYaml([]byte(unitool.MarshallYaml(job)))
+		//log.Println(unitool.MarshallYaml(job))
 		i2, _ := unitool.UnmarshalYaml(testHelmProdInstallJobResult)
 		result, err := AreEqualInterfaces(i1, i2)
 		assert.Equal(t, result, true, "Compare processed job result failed: %v", err)
 	})
+}
+
+// TestLoadFromHierarchyProcess tests config load & basic functions.
+func TestLoadFromHierarchyProcess(t *testing.T) {
+	PrepareFromHierarchyTest()
+
+	uniconf.AddPhase(&uniconf.Phase{
+		Name: "config",
+		Phases: []*uniconf.Phase{
+			{
+				Name:     "load",
+				Callback: uniconf.Load,
+			},
+			{
+				Name:     "flatten_config",
+				Callback: uniconf.FlattenConfig,
+			},
+		},
+	})
+
+	uniconf.AddPhase(&uniconf.Phase{
+		Name: "process",
+		Phases: []*uniconf.Phase{
+			{
+				Name:     "process",
+				Callback: uniconf.ProcessKeys,
+				Args: []interface{}{
+					"projects",
+					"",
+					[]*uniconf.Processor{
+						{
+							Callback:    uniconf.FromProcess,
+							IncludeKeys: []string{uniconf.IncludeListElementName},
+						},
+					},
+				},
+			},
+			{
+				Name:     "print",
+				Callback: uniconf.PrintConfig,
+			},
+		},
+	})
+
+	uniconf.Execute()
+
+	//t.Run("environment", func(t *testing.T) {
+	//	assert.Contains(t, uniconf.Config(), "environment", "no 'environment' key in config")
+	//	assert.Equal(t, uniconf.Config()["environment"], "prod", "environment should equal 'prod'")
+	//})
+	//
+	//t.Run("Compare processed job result", func(t *testing.T) {
+	//	i1, _ := unitool.UnmarshalYaml([]byte(unitool.MarshallYaml(job)))
+	//	i2, _ := unitool.UnmarshalYaml(testHelmProdInstallJobResult)
+	//	result, err := AreEqualInterfaces(i1, i2)
+	//	assert.Equal(t, result, true, "Compare processed job result failed: %v", err)
+	//})
 }
 
 func AreEqualInterfaces(i1, i2 interface{}) (bool, error) {
@@ -1083,8 +1188,11 @@ var testHelmProdInstallJobResult = []byte(`---
 branch: master
 context:
   environment: prod
+from:
+- .params.jobs.folder.prod
 from_processed:
 - .params.jobs.folder.prod
+- .params.jobs.folder.helm.general.install
 - .params.jobs.common
 pipeline:
   from_processed:
@@ -1140,4 +1248,56 @@ pipeline:
       name: gcloud
     unipipe_retrieve_config: true
 type: common
+`)
+
+var testFromHierarchyYaml = []byte(`---
+defaults:
+  mothership_workflow_deploy_direct: &mothership_workflow_deploy_direct
+  - Code is delivered directly to environment (without artifact build stage) to reduce deploy time.
+  mothership_workflow_deploy_direct_params: &mothership_workflow_deploy_direct_params
+    params:
+      labels:
+      - deploy-direct
+  mothership_workflow_operations_drush: &mothership_workflow_operations_drush
+  - Operations are performed with drush.
+  mothership_workflow_operation_drush_params: &mothership_workflow_operations_drush_params
+    params:
+      components:
+      - drush
+mothership:
+  project:
+    type1:
+      params:
+        from:
+        - .mothership.project.dev.direct.composer
+        params:
+          labels:
+          - mothership.project.type.cicd.common.single.type1
+    dev:
+      direct:
+        composer:
+          params:
+            from:
+            - .mothership.project.workflow.dev.deploy.direct
+            - .mothership.project.workflow.dev.operations.drush
+    workflow:
+      dev:
+        deploy:
+          direct:
+            params:
+              <<: *mothership_workflow_deploy_direct_params
+              workflow:
+                dev:
+                  deploy: *mothership_workflow_deploy_direct
+        operations:
+          drush:
+            params:
+              <<: *mothership_workflow_operations_drush_params
+              workflow:
+                dev:
+                  operations: *mothership_workflow_operations_drush
+projects:
+  Test:
+    from:
+    - .mothership.project.type1
 `)

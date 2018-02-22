@@ -321,6 +321,21 @@ func StringListContains(s []string, e string) bool {
 	return false
 }
 
+func RemoveFromList(l []interface{}, item string) []interface{} {
+	for i, other := range l {
+		if other == item {
+			if len(l) == 1 {
+				return []interface{}{}
+			} else if i == len(l) - 1 {
+				return append(l[:i], l[i:]...)
+			} else {
+				return append(l[:i], l[i+1:]...)
+			}
+		}
+	}
+	return l
+}
+
 func FormatByExtension(f string) string {
 	extension := filepath.Ext(f)
 	switch extension {

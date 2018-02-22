@@ -62,7 +62,7 @@ to quickly create a Cobra application.`,
 					Name:     "process",
 					Callback: uniconf.ProcessKeys,
 					Args: []interface{}{
-						"",
+						"projects",
 						"",
 						[]*uniconf.Processor{
 							{

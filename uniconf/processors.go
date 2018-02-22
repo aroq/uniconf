@@ -29,6 +29,7 @@ func InterpolateProcess(source interface{}, path string, phase *Phase) (result i
 func FromProcess(source interface{}, path string, phase *Phase) (result interface{}, processed, mergeToParent, removeParentKey bool, replaceSource interface{}) {
 	from := InterpolateString(source.(string), u.flatConfig)
 	if result, ok := processedFromKeys[from]; ok {
+		log.Debugf("FromProcess() - already processed: %v", from)
 		return result, true, true, true, from
 	}
 
@@ -48,6 +49,7 @@ func FromProcess(source interface{}, path string, phase *Phase) (result interfac
 			log.Errorf("Error: %v", err)
 		}
 		processedFromKeys[from] = result
+		log.Debugf("FromProcess() - processed: %v", from)
 		return result, true, true, true, from
 	}
 	return nil, false, false, false, nil

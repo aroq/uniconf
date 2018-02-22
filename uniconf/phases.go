@@ -149,43 +149,59 @@ func (u *Uniconf) printConfig(inputs []interface{}) (interface{}, error) {
 }
 
 func processKeys(key string, source interface{}, parent interface{}, path string, phase *Phase, processors []*Processor, depth int, excludeKeys []string) {
-	//log.Debugf("processKeys path: %s, key: %s", path, key)
 	if depth > -100 {
 		switch source.(type) {
 		case string:
 			for _, processor := range processors {
 				if ((processor.IncludeKeys != nil && stringListContains(processor.IncludeKeys, key)) || processor.IncludeKeys == nil) &&
 					((processor.ExcludeKeys != nil && !stringListContains(processor.ExcludeKeys, key)) || processor.ExcludeKeys == nil) {
-					value := source.(string)
-					result, processed, mergeToParent, removeParentKey, replaceSource := processor.Callback(value, path, phase)
-					result, _ = unitool.DeepCopyMap(result.(map[string]interface{}))
-					if mergeToParent {
-						unitool.Merge(parent, result)
-					}
-					if removeParentKey {
-						delete(parent.(map[string]interface{}), key)
-					}
-					if replaceSource != nil {
-						value = replaceSource.(string)
-					}
-					if processed && removeParentKey {
-						log.Debugf("Key processed: %s %v", path, value)
-						if _, ok := parent.(map[string]interface{})[key+"_processed"]; !ok {
-							parent.(map[string]interface{})[key+"_processed"] = make([]string, 0)
+					skip := false
+					if processed, ok := parent.(map[string]interface{})[key+"_processed"]; ok {
+						if unitool.StringListContains(processed.([]string), source.(string)) {
+							skip = true
 						}
-						keyProcessed := source.(string) + " (" + value + ")"
-						if source.(string) == value {
-							keyProcessed = value
+					}
+					if skip != true {
+						log.Debugf("processKeys path: %s, key: %s", path, key)
+						value := source.(string)
+						result, processed, mergeToParent, removeParentKey, replaceSource := processor.Callback(value, path, phase)
+						if result != nil {
+							result, _ = unitool.DeepCopyMap(result.(map[string]interface{}))
+							if mergeToParent {
+								unitool.Merge(parent, result)
+							}
+							if removeParentKey {
+								log.Debugf("remove from list: %s", value)
+								switch parent.(map[string]interface{})[key].(type) {
+								case string:
+									delete(parent.(map[string]interface{}), key)
+								case []interface{}:
+									parent.(map[string]interface{})[key] = unitool.RemoveFromList(parent.(map[string]interface{})[key].([]interface{}), value)
+								}
+							}
+							if replaceSource != nil {
+								value = replaceSource.(string)
+							}
+							if processed && removeParentKey {
+								log.Debugf("Key processed: %s %v", path, value)
+								if _, ok := parent.(map[string]interface{})[key+"_processed"]; !ok {
+									parent.(map[string]interface{})[key+"_processed"] = make([]string, 0)
+								}
+								keyProcessed := source.(string) + " (" + value + ")"
+								if source.(string) == value {
+									keyProcessed = value
+								}
+								parent.(map[string]interface{})[key+"_processed"] = append(parent.(map[string]interface{})[key+"_processed"].([]string), keyProcessed)
+							}
+							if replaceSource != nil {
+								source = replaceSource
+							}
+							if mergeToParent {
+								parts := strings.Split(path, ".")
+								p := strings.Join(parts[:len(parts)-1], ".")
+								processKeys("", parent, source, p, phase, processors, depth, excludeKeys)
+							}
 						}
-						parent.(map[string]interface{})[key+"_processed"] = append(parent.(map[string]interface{})[key+"_processed"].([]string), keyProcessed)
-					}
-					if replaceSource != nil {
-						source = replaceSource
-					}
-					if mergeToParent {
-						parts := strings.Split(path, ".")
-						p := strings.Join(parts[:len(parts)-1], ".")
-						processKeys("", parent, source, p, phase, processors, depth, excludeKeys)
 					}
 				}
 			}
@@ -198,6 +214,7 @@ func processKeys(key string, source interface{}, parent interface{}, path string
 				default:
 					p = strings.Join([]string{path, strconv.Itoa(i)}, ".")
 				}
+				//log.Debugf("processKeys() []interface{: %v", l)
 				processKeys(key, l[i], parent, p, phase, processors, depth, excludeKeys)
 			}
 		case map[string]interface{}:
@@ -206,7 +223,7 @@ func processKeys(key string, source interface{}, parent interface{}, path string
 				if !stringListContains(excludeKeys, k) {
 					processKeys(k, v, source, strings.Join([]string{path, k}, "."), phase, processors, depth, excludeKeys)
 				} else {
-					log.Debugf("Key skipped as ecluded by parent: %s", k)
+					log.Debugf("Key skipped as excluded by parent: %s", k)
 				}
 			}
 		}
