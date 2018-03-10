@@ -15,19 +15,19 @@
 package unitool
 
 import (
-	"github.com/spf13/cast"
-	log "github.com/sirupsen/logrus"
-	"strings"
-	"os"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4"
-	"github.com/ghodss/yaml"
-	"encoding/json"
-	"io/ioutil"
-	"path/filepath"
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
+	"github.com/ghodss/yaml"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 var MergeHistory map[string][]string
@@ -59,7 +59,7 @@ func merge(dst, src interface{}, withHistory bool, id string, path string) inter
 				case map[string]interface{}:
 					switch dst.(map[string]interface{})[k].(type) {
 					case map[string]interface{}:
-						dst.(map[string]interface{})[k] = merge(dst.(map[string]interface{})[k].(map[string]interface{}), v.(map[string]interface{}), withHistory, id + "_" + k, "." + k)
+						dst.(map[string]interface{})[k] = merge(dst.(map[string]interface{})[k].(map[string]interface{}), v.(map[string]interface{}), withHistory, id+"_"+k, "."+k)
 					default:
 						dst.(map[string]interface{})[k] = v
 					}
@@ -101,7 +101,7 @@ func ReadFile(filename string) []byte {
 	return f
 }
 
-func GitClone(url, referenceName, path string, depth int, singleBranch bool) (error) {
+func GitClone(url, referenceName, path string, depth int, singleBranch bool) error {
 	log.Printf("Clone repo: %s", url)
 	oldStdout, oldStderr := disableStdStreams(true, false)
 	_, err := git.PlainClone(path, false, &git.CloneOptions{
@@ -141,7 +141,6 @@ func enableStdStreams(oldStdout, oldStderr *os.File) {
 	os.Stdout = oldStdout
 	os.Stderr = oldStderr
 }
-
 
 func UnmarshalByType(t string, stream []byte) (map[string]interface{}, error) {
 	if t == "yaml" {
@@ -190,7 +189,7 @@ func MarshallJson(m interface{}) string {
 }
 
 func SearchMapWithPathStringPrefixes(source map[string]interface{}, path string) interface{} {
-	path = strings.Trim(path,".")
+	path = strings.Trim(path, ".")
 	return SearchMapWithPathPrefixes(source, strings.Split(path, "."))
 }
 
@@ -249,7 +248,7 @@ func DeepCollectParams(source map[string]interface{}, path, key string) (map[str
 	if err != nil {
 		return nil, err
 	}
-	path = strings.Trim(path,".")
+	path = strings.Trim(path, ".")
 	pathParts := strings.Split(path, ".")
 	params := make(map[string]interface{})
 	p := ""
@@ -259,7 +258,7 @@ func DeepCollectParams(source map[string]interface{}, path, key string) (map[str
 		} else {
 			p += pathParts[i]
 		}
-		result := SearchMapWithPathStringPrefixes(source, p + "." + key)
+		result := SearchMapWithPathStringPrefixes(source, p+"."+key)
 		if result != nil {
 			params = Merge(params, result).(map[string]interface{})
 		}
@@ -275,7 +274,7 @@ func DeepCollectChildren(source map[string]interface{}, path, key string) (map[s
 	if err != nil {
 		return nil, err
 	}
-	path = strings.Trim(path,".")
+	path = strings.Trim(path, ".")
 	pathParts := strings.Split(path, ".")
 	params := make(map[string]interface{})
 	p := ""
@@ -326,7 +325,7 @@ func RemoveFromList(l []interface{}, item string) []interface{} {
 		if other == item {
 			if len(l) == 1 {
 				return []interface{}{}
-			} else if i == len(l) - 1 {
+			} else if i == len(l)-1 {
 				return append(l[:i], l[i:]...)
 			} else {
 				return append(l[:i], l[i+1:]...)

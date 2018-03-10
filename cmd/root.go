@@ -17,11 +17,11 @@ package cmd
 import (
 	"os"
 
+	"fmt"
 	"github.com/aroq/uniconf/uniconf"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"path"
-	"fmt"
 )
 
 var cfgFile string

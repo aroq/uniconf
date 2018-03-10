@@ -15,8 +15,8 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"github.com/aroq/uniconf/uniconf"
+	"github.com/spf13/cobra"
 )
 
 var explainJsonPath string
@@ -40,7 +40,7 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(explainCmd)
-	explainCmd.Flags().StringVarP(&explainJsonPath,"jsonpath", "j", ".", "Jsonpath expression to get collect params from ('.' by default)")
+	explainCmd.Flags().StringVarP(&explainJsonPath, "jsonpath", "j", ".", "Jsonpath expression to get collect params from ('.' by default)")
 	explainCmd.Flags().StringVarP(&explainKey, "key", "k", "params", "Element name to collect params from ('params' by default)")
 
 }

@@ -1,8 +1,8 @@
 package uniconf
 
 import (
-	"github.com/aroq/uniconf/unitool"
 	"fmt"
+	"github.com/aroq/uniconf/unitool"
 	"strings"
 )
 
@@ -37,4 +37,3 @@ func GetJson() (yamlString string) { return u.getJson() }
 func (u *Uniconf) getJson() string {
 	return unitool.MarshallJson(u.config)
 }
-

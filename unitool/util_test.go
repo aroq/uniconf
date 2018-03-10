@@ -27,7 +27,7 @@ func TestMerge(t *testing.T) {
 
 	Merge(src, dest)
 
-    // Test deep key merging.
+	// Test deep key merging.
 	if src["key1"].(map[string]interface{})["key1_subkey2"] != "key1_subkey2_value_override" {
 		t.Errorf("Deep key merging failed: %s", "key1_subkey2 != key1_subkey2_value_override")
 	}
@@ -50,7 +50,7 @@ func TestUnmarshalYaml(t *testing.T) {
 	}
 }
 
-func TestSearchMapWithPathStringPrefixes(t*testing.T) {
+func TestSearchMapWithPathStringPrefixes(t *testing.T) {
 	src := map[string]interface{}{
 		"key1": map[string]interface{}{
 			"key1_subkey1": "key1_subkey1_value",
@@ -68,7 +68,7 @@ func TestSearchMapWithPathStringPrefixes(t*testing.T) {
 	}
 }
 
-func TestSearchMapWithPathStringPrefixesInYaml(t*testing.T) {
+func TestSearchMapWithPathStringPrefixesInYaml(t *testing.T) {
 	src, err := UnmarshalYaml(yamlExample)
 	if err != nil {
 		t.Errorf("UnmarshalYaml err: %v", err)

@@ -2,11 +2,11 @@ package uniconf
 
 import (
 	"github.com/aroq/uniconf/unitool"
-	log "github.com/sirupsen/logrus"
-	"strings"
-	"regexp"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
+	log "github.com/sirupsen/logrus"
+	"regexp"
+	"strings"
 )
 
 type Processor struct {

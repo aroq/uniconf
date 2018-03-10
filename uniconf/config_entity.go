@@ -9,9 +9,9 @@ import (
 )
 
 type ConfigEntity struct {
-	id     string
-	title  string
-	parent *ConfigEntity
+	id      string
+	title   string
+	parent  *ConfigEntity
 	config  map[string]interface{}
 	source  SourceHandler
 	history map[string]interface{}
@@ -169,7 +169,7 @@ func (c *ConfigEntity) processIncludes() {
 			source := u.getSource(sourceName)
 			ids, _ := source.GetIncludeConfigEntityIds(scenarioId)
 			for _, id := range ids {
-				log.Printf("Process include: %s", source.Path() + ":" + id)
+				log.Printf("Process include: %s", source.Path()+":"+id)
 				if subConfigEntity, err := source.LoadConfigEntity(map[string]interface{}{"id": id, "title": title, "parent": c}); err == nil {
 					unitool.Merge(includesConfig, subConfigEntity.config)
 					unitool.Merge(history, subConfigEntity.history)

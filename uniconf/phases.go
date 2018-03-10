@@ -2,6 +2,7 @@ package uniconf
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/aroq/uniconf/unitool"
 	log "github.com/sirupsen/logrus"
@@ -9,7 +10,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"errors"
 )
 
 func (u *Uniconf) setCurrentPhase(name string) {
@@ -54,7 +54,9 @@ func (u *Uniconf) printHistory(inputs []interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-func DeepCollectChildren(inputs []interface{}) (interface{}, error) { return u.deepCollectChildren(inputs) }
+func DeepCollectChildren(inputs []interface{}) (interface{}, error) {
+	return u.deepCollectChildren(inputs)
+}
 func (u *Uniconf) deepCollectChildren(inputs []interface{}) (interface{}, error) {
 	if len(inputs) > 1 {
 		path := inputs[0].(string)
