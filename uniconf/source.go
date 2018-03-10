@@ -81,7 +81,7 @@ func (s *Source) Autoload() string {
 }
 
 func (s *Source) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error) {
-	fmt.Sprintf("Process %s: %s", configMap["name"], configMap["id"])
+	//fmt.Println("Process %s: %s", configMap["name"], configMap["id"])
 	if c, ok := s.ConfigEntity(configMap["id"].(string)); ok {
 		return c, nil
 	} else {
@@ -161,7 +161,7 @@ func (s *SourceFile) GetIncludeConfigEntityIds(scenarioId string) ([]string, err
 }
 
 func (s *SourceFile) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error) {
-	fmt.Sprintf("Process %s: %s", configMap["name"], configMap["id"])
+	//fmt.Printf("Process %s: %s", configMap["name"], configMap["id"])
 	if _, ok := s.ConfigEntity(configMap["id"].(string)); !ok {
 		if scenarioId, ok := configMap["id"].(string); ok {
 			stream := unitool.ReadFile(scenarioId)
@@ -229,7 +229,7 @@ func (s *SourceEnv) LoadConfigEntity(configMap map[string]interface{}) (*ConfigE
 }
 
 func (s *SourceConfigMap) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error) {
-	fmt.Sprintf("Process %s: %s", configMap["name"], configMap["id"])
+	//fmt.Printf("Process %s: %s", configMap["name"], configMap["id"])
 	if _, ok := s.ConfigEntity(configMap["id"].(string)); !ok {
 		if value, ok := s.configMap[configMap["id"].(string)]; ok {
 			switch value.(type) {
