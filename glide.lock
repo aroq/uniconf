@@ -1,5 +1,5 @@
 hash: 2ff8bf75fa6dbb0dba93d4b66f73b4684e6a870446571336e4d5b16a43cac944
-updated: 2018-01-09T17:31:24.482799+03:00
+updated: 2018-03-10T20:28:24.388069+03:00
 imports:
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
@@ -144,4 +144,29 @@ imports:
   version: ec4a0fea49c7b46c2aeb0b51aac55779c607e52b
 - name: gopkg.in/yaml.v2
   version: 287cf08546ab5e7e37d55a84f7ed3fd1db036de5
-testImports: []
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
+  subpackages:
+  - spew
+- name: github.com/juju/loggo
+  version: 8232ab8918d91c72af1a9fb94d3edbe31d88b790
+- name: github.com/juju/testing
+  version: 43f926548f91d55be6bae26ecb7d2386c64e887c
+  subpackages:
+  - checkers
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
+- name: github.com/stretchr/testify
+  version: b89eecf5ca5db6d3ba60b237ffe3df7bafb7662f
+  subpackages:
+  - assert
+- name: gopkg.in/check.v1
+  version: 20d25e2804050c1cd24a7eea1e7a6447dd0e74ec
+- name: gopkg.in/mgo.v2
+  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
+  subpackages:
+  - bson
+  - internal/json
