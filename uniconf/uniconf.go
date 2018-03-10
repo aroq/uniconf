@@ -75,7 +75,7 @@ func New() *Uniconf {
 
 // Init initializes uniconf.
 func init() {
-	log.SetLevel(log.DebugLevel)
+	//log.SetLevel(log.DebugLevel)
 	u = New()
 }
 
