@@ -1,3 +1,6 @@
+Version 0.1.1:
+ - Disable travis lint checks
+
 Version 0.1.0
  - Format code
  - Test Travis build
