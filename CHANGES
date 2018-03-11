@@ -1,4 +1,5 @@
 Version 0.1.0
+ - Added VERSION and CHANGES files, Version bump to v0.1.0
  - Add project_name to goreleaser
  - Add /dest to .gitignore
  - Version bump to 0.1.1
