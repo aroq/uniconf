@@ -19,6 +19,7 @@ import (
 	"github.com/aroq/uniconf/uniconf"
 	"github.com/aroq/uniconf/unitool"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var contextName string
@@ -45,11 +46,25 @@ var contextCmd = &cobra.Command{
 					Callback: uniconf.FlattenConfig,
 				},
 				{
+					Name:     "process",
+					Callback: uniconf.ProcessKeys,
+					Args: []interface{}{
+						"jobs",
+						"",
+						[]*uniconf.Processor{
+							{
+								Callback:    uniconf.FromProcess,
+								IncludeKeys: []string{uniconf.IncludeListElementName},
+							},
+						},
+					},
+				},
+				{
 					Name:     "process_context",
 					Callback: uniconf.ProcessContext,
 					Args: []interface{}{
-						contextName,
-						contextId,
+						viper.Get("context_name"),
+						viper.Get("context_id"),
 					},
 					Result: &context,
 				},
@@ -68,6 +83,12 @@ var contextCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(contextCmd)
-	contextCmd.Flags().StringVarP(&contextName, "name", "n", "", "Entity name")
-	contextCmd.Flags().StringVarP(&contextId, "id", "i", "", "Entity id")
+	contextCmd.PersistentFlags().StringVarP(&contextName, "name", "n", "", "Context name")
+	contextCmd.PersistentFlags().StringVarP(&contextId,   "id", "i", "", "Context id")
+
+	viper.BindPFlag("context_name", contextCmd.PersistentFlags().Lookup("name"))
+	viper.BindPFlag("context_id",   contextCmd.PersistentFlags().Lookup("id"))
+
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("UNICONF")
 }
