@@ -3,11 +3,12 @@ package uniconf
 import (
 	"errors"
 	"fmt"
-	"github.com/aroq/uniconf/unitool"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/aroq/uniconf/unitool"
+	log "github.com/sirupsen/logrus"
 )
 
 type SourceHandler interface {

@@ -2,8 +2,9 @@ package uniconf
 
 import (
 	"fmt"
-	"github.com/aroq/uniconf/unitool"
 	"strings"
+
+	"github.com/aroq/uniconf/unitool"
 )
 
 func Collect(jsonPath, key string) string { return u.collect(jsonPath, key) }

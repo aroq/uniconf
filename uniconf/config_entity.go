@@ -2,10 +2,11 @@ package uniconf
 
 import (
 	"errors"
-	"github.com/aroq/uniconf/unitool"
-	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
+
+	"github.com/aroq/uniconf/unitool"
+	log "github.com/sirupsen/logrus"
 )
 
 type ConfigEntity struct {

@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/aroq/uniconf/unitool"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/aroq/uniconf/unitool"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 func (u *Uniconf) setCurrentPhase(name string) {

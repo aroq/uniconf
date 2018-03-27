@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/aroq/uniconf/uniconf"
 	"github.com/aroq/uniconf/unitool"
 	"github.com/spf13/cobra"
@@ -84,10 +85,10 @@ var contextCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(contextCmd)
 	contextCmd.PersistentFlags().StringVarP(&contextName, "name", "n", "", "Context name")
-	contextCmd.PersistentFlags().StringVarP(&contextId,   "id", "i", "", "Context id")
+	contextCmd.PersistentFlags().StringVarP(&contextId, "id", "i", "", "Context id")
 
 	viper.BindPFlag("context_name", contextCmd.PersistentFlags().Lookup("name"))
-	viper.BindPFlag("context_id",   contextCmd.PersistentFlags().Lookup("id"))
+	viper.BindPFlag("context_id", contextCmd.PersistentFlags().Lookup("id"))
 
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("UNICONF")

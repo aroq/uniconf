@@ -2,12 +2,13 @@ package uniconf_test
 
 import (
 	"bytes"
+	"os"
+	"testing"
+
 	"github.com/aroq/uniconf/uniconf"
 	"github.com/aroq/uniconf/unitool"
 	"github.com/juju/testing/checkers"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 // PrepareTest provides config values.
@@ -206,8 +207,8 @@ func TestLoadWithFlattenConfig(t *testing.T) {
 	})
 }
 
-// TestLoadFromProcess tests config load & basic functions.
-func TestLoadFromProcess(t *testing.T) {
+// TestProcessContext tests config load & basic functions.
+func TestProcessContext(t *testing.T) {
 	PrepareTest()
 
 	var job interface{}
@@ -248,6 +249,59 @@ func TestLoadFromProcess(t *testing.T) {
 		result, err := AreEqualInterfaces(i1, i2)
 		assert.Equal(t, result, true, "Compare processed job result failed: %v", err)
 	})
+}
+
+// TestLoadFromProcess tests config load & basic functions.
+func TestLoadFromProcess(t *testing.T) {
+	PrepareTest()
+
+	//var job interface{}
+	uniconf.AddPhase(&uniconf.Phase{
+		Name: "config",
+		Phases: []*uniconf.Phase{
+			{
+				Name:     "load",
+				Callback: uniconf.Load,
+			},
+			{
+				Name:     "flatten_config",
+				Callback: uniconf.FlattenConfig,
+			},
+			{
+				Name:     "process",
+				Callback: uniconf.ProcessKeys,
+				Args: []interface{}{
+					"jobs",
+					"",
+					[]*uniconf.Processor{
+						{
+							Callback:    uniconf.FromProcess,
+							IncludeKeys: []string{uniconf.IncludeListElementName},
+						},
+					},
+				},
+			},
+			{
+				Name:     "print",
+				Callback: uniconf.PrintConfig,
+			},
+		},
+	})
+
+	uniconf.Execute()
+
+	//t.Run("environment", func(t *testing.T) {
+	//	assert.Contains(t, uniconf.Config(), "environment", "no 'environment' key in config")
+	//	assert.Equal(t, uniconf.Config()["environment"], "prod", "environment should equal 'prod'")
+	//})
+	//
+	//t.Run("Compare processed job result", func(t *testing.T) {
+	//	i1, _ := unitool.UnmarshalYaml([]byte(unitool.MarshallYaml(job)))
+	//	//log.Println(unitool.MarshallYaml(job))
+	//	i2, _ := unitool.UnmarshalYaml(testHelmProdInstallJobResult)
+	//	result, err := AreEqualInterfaces(i1, i2)
+	//	assert.Equal(t, result, true, "Compare processed job result failed: %v", err)
+	//})
 }
 
 // TestLoadFromHierarchyProcess tests config load & basic functions.

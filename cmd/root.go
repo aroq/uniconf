@@ -18,10 +18,11 @@ import (
 	"os"
 
 	"fmt"
+	"path"
+
 	"github.com/aroq/uniconf/uniconf"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"path"
 )
 
 var cfgFile string

@@ -19,15 +19,16 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/ghodss/yaml"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 var MergeHistory map[string][]string
