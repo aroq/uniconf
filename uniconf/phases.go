@@ -74,7 +74,9 @@ func (u *Uniconf) processContext(inputs []interface{}) (interface{}, error) {
 		entityName := inputs[0].(string)
 		entityId := inputs[1].(string)
 		if _, ok := u.config["entities"]; ok {
+			// Get entity handler from the config.
 			entityHandler := u.config["entities"].(map[string]interface{})[entityName].(map[string]interface{})
+			// childrenKey determines key in config used to hold child items.
 			childrenKey := entityHandler["children_key"].(string)
 
 			processors := make([]*Processor, 0)
@@ -90,7 +92,7 @@ func (u *Uniconf) processContext(inputs []interface{}) (interface{}, error) {
 					}
 				}
 			}
-			ProcessKeys([]interface{}{entityId, childrenKey, processors})
+			ProcessKeys([]interface{}{childrenKey, "", processors})
 
 			switch entityHandler["retrieve_handler"].(string) {
 			case "DeepCollectChildren":
@@ -99,7 +101,7 @@ func (u *Uniconf) processContext(inputs []interface{}) (interface{}, error) {
 				return entity, nil
 			}
 		} else {
-			return nil, errors.New("config entities are not defined")
+			return nil, errors.New("config contexts are not defined")
 		}
 	}
 	return nil, nil
@@ -241,7 +243,7 @@ func stringListContains(s []string, e string) bool {
 	return false
 }
 
-// Process processes configuration.
+// ProcessKeys processes configuration.
 func ProcessKeys(inputs []interface{}) (interface{}, error) { return u.processKeys(inputs) }
 func (u *Uniconf) processKeys(inputs []interface{}) (interface{}, error) {
 	path := inputs[0].(string)
