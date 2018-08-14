@@ -1,3 +1,11 @@
+Version 0.1.2:
+ - Add env support
+ - Enable megacheck in Travis
+ - Format code
+ - Refactor code
+ - Make context command to use viper to retrieve params
+ - Build on 1.10 golang in Travis
+
 Version 0.1.1:
  - Add project_name to goreleaser
 
