@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	log "github.com/sirupsen/logrus"
+	"os"
 )
 
 type Processor struct {
@@ -79,6 +80,16 @@ func InterpolateString(input string, config map[string]interface{}) string {
 			},
 		}
 
+		env := ast.Function{
+			ArgTypes:   []ast.Type{ast.TypeString},
+			ReturnType: ast.TypeString,
+			Variadic:   false,
+			Callback: func(inputs []interface{}) (interface{}, error) {
+				input := inputs[0].(string)
+				return os.Getenv(input), nil
+			},
+		}
+
 		configMap := map[string]ast.Variable{}
 		for k, v := range config {
 			configMap[k], _ = hil.InterfaceToVariable(v)
@@ -89,6 +100,7 @@ func InterpolateString(input string, config map[string]interface{}) string {
 				VarMap: configMap,
 				FuncMap: map[string]ast.Function{
 					"deepGet": deepGet,
+					"env": env,
 				},
 			},
 		}
