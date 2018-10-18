@@ -34,19 +34,12 @@ before_script:
   - GOLANGCI_LINT_VERSION="v1.10.2"
   - go get -v github.com/Masterminds/glide
   - go get -u golang.org/x/lint/golint
-#  - go get honnef.co/go/tools/cmd/megacheck
-#  - go get github.com/fzipp/gocyclo
-#  - go get golang.org/x/tools/cmd/goimports
   - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $GOPATH/bin ${GOLANGCI_LINT_VERSION}
 
 script:
   - glide install
-  - golangci-lint run -E goimports -D errcheck --skip-dirs vendor
-#  - test -z "$(goimports -d $(find . -type f -name '*.go' -not -path './vendor/*'))" # Fail if a .go file hasn't been formatted with gofmt
-#  - go test -v -race ./...                   # Run all the tests with the race detector enabled
-  - go vet ./...                             # go vet is the official Go static analyzer
-#  - megacheck ./...                          # "go vet on steroids" + linter
+  - make go/lint
+  - go test -v -race ./...
+  - go vet ./...
 # TODO: Uncomment this:
-# Temporary disable linters to get build working for now.
-#  - gocyclo -over 19 $GO_FILES               # forbid code with huge functions
 #  - golint -set_exit_status $(go list ./...) # one last linter
