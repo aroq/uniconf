@@ -4,11 +4,12 @@ import (
 	"regexp"
 	"strings"
 
+	"os"
+
 	"github.com/aroq/uniconf/unitool"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 type Processor struct {
@@ -100,7 +101,7 @@ func InterpolateString(input string, config map[string]interface{}) string {
 				VarMap: configMap,
 				FuncMap: map[string]ast.Function{
 					"deepGet": deepGet,
-					"env": env,
+					"env":     env,
 				},
 			},
 		}

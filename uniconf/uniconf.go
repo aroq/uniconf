@@ -38,10 +38,10 @@ type Callback struct {
 }
 
 type Uniconf struct {
-	config       map[string]interface{}
-	sources      map[string]SourceHandler
-	history      map[string]interface{}
-	flatConfig   map[string]interface{}
+	config     map[string]interface{}
+	sources    map[string]SourceHandler
+	history    map[string]interface{}
+	flatConfig map[string]interface{}
 	//contexts     []string
 	phases       map[string]*Phase
 	phasesList   []*Phase
