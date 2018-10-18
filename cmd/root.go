@@ -78,10 +78,10 @@ to quickly create a Cobra application.`,
 
 		uniconf.Execute()
 		if outputFormat == "yaml" {
-			fmt.Println(uniconf.GetYaml())
+			fmt.Println(uniconf.GetYAML())
 		}
 		if outputFormat == "json" {
-			fmt.Println(uniconf.GetJson())
+			fmt.Println(uniconf.GetJSON())
 		}
 	},
 }

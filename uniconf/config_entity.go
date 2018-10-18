@@ -134,11 +134,11 @@ func (c *ConfigEntity) processSources() {
 				}
 				u.sources[k] = source
 
-				if autoloadId := source.Autoload(); autoloadId != "" {
+				if autoloadID := source.Autoload(); autoloadID != "" {
 					if _, ok := c.config[IncludeListElementName]; !ok {
 						c.config[IncludeListElementName] = make([]interface{}, 0)
 					}
-					c.config[IncludeListElementName] = append(c.config[IncludeListElementName].([]interface{}), strings.Join([]string{source.Name(), autoloadId}, ":"))
+					c.config[IncludeListElementName] = append(c.config[IncludeListElementName].([]interface{}), strings.Join([]string{source.Name(), autoloadID}, ":"))
 				}
 			} else {
 				log.Printf("Source: %s already loaded", k)
@@ -164,11 +164,11 @@ func (c *ConfigEntity) processIncludes() {
 
 	if includes, ok := c.config[IncludeListElementName]; ok {
 		for _, v := range includes.([]interface{}) {
-			sourceName, scenarioId := parseScenario(v.(string))
+			sourceName, scenarioID := parseScenario(v.(string))
 			// TODO: check if title is needed.
-			title := scenarioId
+			title := scenarioID
 			source := u.getSource(sourceName)
-			ids, _ := source.GetIncludeConfigEntityIds(scenarioId)
+			ids, _ := source.GetIncludeConfigEntityIds(scenarioID)
 			for _, id := range ids {
 				log.Printf("Process include: %s", source.Path()+":"+id)
 				if subConfigEntity, err := source.LoadConfigEntity(map[string]interface{}{"id": id, "title": title, "parent": c}); err == nil {

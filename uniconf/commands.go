@@ -29,12 +29,12 @@ func (u *Uniconf) explain(jsonPath, key string) {
 	//fmt.Println(unitool.MarshallYaml(result))
 }
 
-func GetYaml() (yamlString string) { return u.getYaml() }
-func (u *Uniconf) getYaml() string {
+func GetYAML() (yamlString string) { return u.getYAML() }
+func (u *Uniconf) getYAML() string {
 	return unitool.MarshallYaml(u.config)
 }
 
-func GetJson() (yamlString string) { return u.getJson() }
-func (u *Uniconf) getJson() string {
-	return unitool.MarshallJson(u.config)
+func GetJSON() (yamlString string) { return u.getJSON() }
+func (u *Uniconf) getJSON() string {
+	return unitool.MarshallJSON(u.config)
 }

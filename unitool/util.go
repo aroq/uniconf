@@ -116,9 +116,9 @@ func GitClone(url, referenceName, path string, depth int, singleBranch bool) err
 	if err != nil {
 		log.Printf("Error: %s", err)
 		return err
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 func disableStdStreams(disableStdout, disableStderr bool) (oldStdout, oldStderr *os.File) {
@@ -148,7 +148,7 @@ func UnmarshalByType(t string, stream []byte) (map[string]interface{}, error) {
 		return UnmarshalYaml(stream)
 	}
 	if t == "json" {
-		return UnmarshalJson(stream)
+		return UnmarshalJSON(stream)
 	}
 	return nil, errors.New("unknown type")
 }
@@ -163,7 +163,7 @@ func UnmarshalYaml(stream []byte) (map[string]interface{}, error) {
 	return y, nil
 }
 
-func UnmarshalJson(stream []byte) (map[string]interface{}, error) {
+func UnmarshalJSON(stream []byte) (map[string]interface{}, error) {
 	y := make(map[string]interface{})
 	err := json.Unmarshal(stream, &y)
 	if err != nil {
@@ -181,7 +181,7 @@ func MarshallYaml(m interface{}) string {
 	return "---\n" + string(y)
 }
 
-func MarshallJson(m interface{}) string {
+func MarshallJSON(m interface{}) string {
 	y, err := json.Marshal(m)
 	if err != nil {
 		log.Fatalf("Err: %v", err)

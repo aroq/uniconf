@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var explainJsonPath string
+var explainJSONPath string
 
 var explainKey string
 
@@ -34,13 +34,13 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		uniconf.Explain(explainJsonPath, explainKey)
+		uniconf.Explain(explainJSONPath, explainKey)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(explainCmd)
-	explainCmd.Flags().StringVarP(&explainJsonPath, "jsonpath", "j", ".", "Jsonpath expression to get collect params from ('.' by default)")
+	explainCmd.Flags().StringVarP(&explainJSONPath, "jsonpath", "j", ".", "Jsonpath expression to get collect params from ('.' by default)")
 	explainCmd.Flags().StringVarP(&explainKey, "key", "k", "params", "Element name to collect params from ('params' by default)")
 
 }

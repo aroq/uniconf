@@ -25,7 +25,7 @@ import (
 
 var contextName string
 
-var contextId string
+var contextID string
 
 // contextCmd represents the entity command
 var contextCmd = &cobra.Command{
@@ -77,7 +77,7 @@ var contextCmd = &cobra.Command{
 			fmt.Println(unitool.MarshallYaml(uniconf.Config()))
 		}
 		if outputFormat == "json" {
-			fmt.Println(unitool.MarshallJson(uniconf.Config()))
+			fmt.Println(unitool.MarshallJSON(uniconf.Config()))
 		}
 	},
 }
@@ -85,7 +85,7 @@ var contextCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(contextCmd)
 	contextCmd.PersistentFlags().StringVarP(&contextName, "name", "n", "", "Context name")
-	contextCmd.PersistentFlags().StringVarP(&contextId, "id", "i", "", "Context id")
+	contextCmd.PersistentFlags().StringVarP(&contextID, "id", "i", "", "Context id")
 
 	viper.BindPFlag("context_name", contextCmd.PersistentFlags().Lookup("name"))
 	viper.BindPFlag("context_id", contextCmd.PersistentFlags().Lookup("id"))

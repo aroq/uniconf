@@ -150,10 +150,10 @@ func (u *Uniconf) getSource(name string) SourceHandler {
 			}
 		}
 		return source
-	} else {
-		log.Fatalf("Source: %s is not registered", name)
-		return nil
 	}
+
+	log.Fatalf("Source: %s is not registered", name)
+	return nil
 }
 
 func (u *Uniconf) allSettings(v *viper.Viper) map[string]interface{} {

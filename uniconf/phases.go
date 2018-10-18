@@ -64,16 +64,15 @@ func (u *Uniconf) deepCollectChildren(inputs []interface{}) (interface{}, error)
 		key := inputs[1].(string)
 		object, _ := unitool.DeepCollectChildren(u.config, path, key)
 		return object, nil
-	} else {
-		return nil, nil
 	}
+	return nil, nil
 }
 
 func ProcessContext(inputs []interface{}) (interface{}, error) { return u.processContext(inputs) }
 func (u *Uniconf) processContext(inputs []interface{}) (interface{}, error) {
 	if len(inputs) > 1 {
 		entityName := inputs[0].(string)
-		entityId := inputs[1].(string)
+		entityID := inputs[1].(string)
 		if _, ok := u.config["entities"]; ok {
 			// Get entity handler from the config.
 			entityHandler := u.config["entities"].(map[string]interface{})[entityName].(map[string]interface{})
@@ -97,7 +96,7 @@ func (u *Uniconf) processContext(inputs []interface{}) (interface{}, error) {
 
 			switch entityHandler["retrieve_handler"].(string) {
 			case "DeepCollectChildren":
-				entity, _ := unitool.DeepCollectChildren(u.config, entityId, childrenKey)
+				entity, _ := unitool.DeepCollectChildren(u.config, entityID, childrenKey)
 				u.setContextObject(entityHandler["context_name"].(string), entity)
 				return entity, nil
 			}
@@ -135,7 +134,7 @@ func (u *Uniconf) setContextObject(contextName string, context map[string]interf
 func FlattenConfig(inputs []interface{}) (interface{}, error) { return u.flattenConfig(inputs) }
 func (u *Uniconf) flattenConfig(inputs []interface{}) (interface{}, error) {
 	viper := viper.New()
-	var yamlConfig = []byte(GetYaml())
+	var yamlConfig = []byte(GetYAML())
 	viper.SetConfigType("yaml")
 	viper.ReadConfig(bytes.NewBuffer(yamlConfig))
 	u.flatConfig = u.allSettings(viper)
@@ -224,7 +223,7 @@ func processKeys(key string, source interface{}, parent interface{}, path string
 			}
 		case map[string]interface{}:
 			for k, v := range source.(map[string]interface{}) {
-				depth -= 1
+				depth--
 				if !stringListContains(excludeKeys, k) {
 					processKeys(k, v, source, strings.Join([]string{path, k}, "."), phase, processors, depth, excludeKeys)
 				} else {

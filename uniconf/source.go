@@ -16,7 +16,7 @@ type SourceHandler interface {
 	Autoload() string
 	LoadSource() error
 	IsLoaded() bool
-	GetIncludeConfigEntityIds(scenarioId string) ([]string, error)
+	GetIncludeConfigEntityIds(scenarioID string) ([]string, error)
 	LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error)
 	ConfigEntity(id string) (*ConfigEntity, bool)
 }
@@ -25,7 +25,7 @@ type Source struct {
 	name           string
 	isLoaded       bool
 	configEntities map[string]*ConfigEntity
-	autoloadId     string
+	autoloadID     string
 }
 
 type SourceFile struct {
@@ -72,35 +72,35 @@ func (s *Source) LoadSource() error {
 	return nil
 }
 
-func (s *Source) GetIncludeConfigEntityIds(scenarioId string) ([]string, error) {
-	return []string{scenarioId}, nil
+func (s *Source) GetIncludeConfigEntityIds(scenarioID string) ([]string, error) {
+	return []string{scenarioID}, nil
 }
 
 func (s *Source) Autoload() string {
-	return s.autoloadId
+	return s.autoloadID
 }
 
 func (s *Source) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error) {
 	//fmt.Println("Process %s: %s", configMap["name"], configMap["id"])
 	if c, ok := s.ConfigEntity(configMap["id"].(string)); ok {
 		return c, nil
-	} else {
-		c, err := NewConfigEntity(s, configMap)
-		if err != nil {
-			log.Fatalf("Error creating ConfigEntity: %v", err)
-		}
-		s.configEntities[c.id] = c
-		c.process()
-		return c, nil
 	}
+
+	c, err := NewConfigEntity(s, configMap)
+	if err != nil {
+		log.Fatalf("Error creating ConfigEntity: %v", err)
+	}
+	s.configEntities[c.id] = c
+	c.process()
+	return c, nil
 }
 
 func (s *Source) ConfigEntity(id string) (*ConfigEntity, bool) {
 	if c, ok := s.configEntities[id]; ok {
 		return c, true
-	} else {
-		return nil, false
 	}
+
+	return nil, false
 }
 
 func (s *SourceFile) Path() string {
@@ -115,14 +115,14 @@ func (s *SourceRepo) LoadSource() error {
 	return err
 }
 
-func (s *SourceFile) GetIncludeConfigEntityIds(scenarioId string) ([]string, error) {
+func (s *SourceFile) GetIncludeConfigEntityIds(scenarioID string) ([]string, error) {
 	ids := make([]string, 0)
 	files := make([]string, 0)
-	if strings.Index(scenarioId, "/") == 0 {
-		ids = append(ids, scenarioId)
+	if strings.Index(scenarioID, "/") == 0 {
+		ids = append(ids, scenarioID)
 	} else {
-		if strings.Contains(scenarioId, "/") {
-			s := strings.Split(scenarioId, "/")
+		if strings.Contains(scenarioID, "/") {
+			s := strings.Split(scenarioID, "/")
 			id := ""
 			for _, v := range s {
 				if v != "" {
@@ -135,18 +135,18 @@ func (s *SourceFile) GetIncludeConfigEntityIds(scenarioId string) ([]string, err
 				}
 			}
 		} else {
-			ids = append(ids, scenarioId)
+			ids = append(ids, scenarioID)
 		}
 	}
 	var includeFileNamesToCheck []string
 	for _, id := range ids {
-		if !(strings.Index(scenarioId, "/") == 0) {
-			scenarioId = path.Join(includesPath, id)
+		if !(strings.Index(scenarioID, "/") == 0) {
+			scenarioID = path.Join(includesPath, id)
 			includeFileName := path.Join(s.Path(), includesPath, id)
 			includeFileNamesToCheck = append(includeFileNamesToCheck, includeFileName+".yaml", includeFileName+".yml", includeFileName+".json", path.Join(includeFileName, mainConfigFileName))
 		} else {
-			scenarioId = strings.Trim(id, "/")
-			includeFileName := path.Join(s.Path(), scenarioId)
+			scenarioID = strings.Trim(id, "/")
+			includeFileName := path.Join(s.Path(), scenarioID)
 			includeFileNamesToCheck = append(includeFileNamesToCheck, includeFileName)
 		}
 	}
@@ -163,20 +163,19 @@ func (s *SourceFile) GetIncludeConfigEntityIds(scenarioId string) ([]string, err
 func (s *SourceFile) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error) {
 	//fmt.Printf("Process %s: %s", configMap["name"], configMap["id"])
 	if _, ok := s.ConfigEntity(configMap["id"].(string)); !ok {
-		if scenarioId, ok := configMap["id"].(string); ok {
-			stream := unitool.ReadFile(scenarioId)
+		if scenarioID, ok := configMap["id"].(string); ok {
+			stream := unitool.ReadFile(scenarioID)
 			configMap["stream"] = stream
 			if _, ok := configMap["format"]; !ok {
-				configMap["format"] = unitool.FormatByExtension(scenarioId)
+				configMap["format"] = unitool.FormatByExtension(scenarioID)
 			}
 			conf, err := unitool.UnmarshalByType(configMap["format"].(string), stream)
 			if err == nil {
 				configMap["config"] = conf
-				if configEntity, err := s.Source.LoadConfigEntity(configMap); err == nil {
+				if configEntity, err := s.Source.LoadConfigEntity(configMap); err != nil {
 					return configEntity, nil
-				} else {
-					log.Warnf("LoadConfigEntity error: %v", err)
 				}
+				log.Warnf("LoadConfigEntity error: %v", err)
 			} else {
 				log.Errorf("UnmarshalByType error: %v", err)
 			}
@@ -189,11 +188,11 @@ func (s *SourceFile) LoadConfigEntity(configMap map[string]interface{}) (*Config
 	return nil, fmt.Errorf("file %s doesnt'exists", configMap["id"].(string))
 }
 
-func (s *SourceEnv) GetIncludeConfigEntityIds(scenarioId string) ([]string, error) {
+func (s *SourceEnv) GetIncludeConfigEntityIds(scenarioID string) ([]string, error) {
 	ids := make([]string, 0)
 	envVars := make([]string, 0)
-	if strings.Contains(scenarioId, "_") {
-		parts := strings.Split(scenarioId, "_")
+	if strings.Contains(scenarioID, "_") {
+		parts := strings.Split(scenarioID, "_")
 		id := ""
 		for _, v := range parts {
 			if v != "" {
@@ -206,7 +205,7 @@ func (s *SourceEnv) GetIncludeConfigEntityIds(scenarioId string) ([]string, erro
 			}
 		}
 	} else {
-		ids = append(ids, scenarioId)
+		ids = append(ids, scenarioID)
 	}
 	for _, v := range ids {
 		if _, ok := os.LookupEnv(v); ok {
@@ -248,14 +247,14 @@ func (s *SourceConfigMap) LoadConfigEntity(configMap map[string]interface{}) (*C
 	return nil, fmt.Errorf("source config map entry %s doesnt'exists", configMap["id"].(string))
 }
 
-func (s *SourceConfigMap) GetIncludeConfigEntityIds(scenarioId string) ([]string, error) {
+func (s *SourceConfigMap) GetIncludeConfigEntityIds(scenarioID string) ([]string, error) {
 	ids := make([]string, 0)
 	files := make([]string, 0)
-	if strings.Index(scenarioId, "/") == 0 {
-		ids = append(ids, scenarioId)
+	if strings.Index(scenarioID, "/") == 0 {
+		ids = append(ids, scenarioID)
 	} else {
-		if strings.Contains(scenarioId, "/") {
-			s := strings.Split(scenarioId, "/")
+		if strings.Contains(scenarioID, "/") {
+			s := strings.Split(scenarioID, "/")
 			id := ""
 			for _, v := range s {
 				if v != "" {
@@ -268,7 +267,7 @@ func (s *SourceConfigMap) GetIncludeConfigEntityIds(scenarioId string) ([]string
 				}
 			}
 		} else {
-			ids = append(ids, scenarioId)
+			ids = append(ids, scenarioID)
 		}
 	}
 
@@ -287,8 +286,8 @@ func NewSource(sourceName string, sourceMap map[string]interface{}) *Source {
 		isLoaded:       false,
 		configEntities: make(map[string]*ConfigEntity),
 	}
-	if autoloadId, ok := sourceMap["autoload"]; ok {
-		source.autoloadId = autoloadId.(string)
+	if autoloadID, ok := sourceMap["autoload"]; ok {
+		source.autoloadID = autoloadID.(string)
 	}
 	return source
 }

@@ -24,9 +24,9 @@ func InterpolateProcess(source interface{}, path string, phase *Phase) (result i
 	if strings.Contains(source.(string), "${") {
 		s := InterpolateString(source.(string), u.flatConfig)
 		return s, true, false, false, s
-	} else {
-		return nil, false, false, false, nil
 	}
+
+	return nil, false, false, false, nil
 }
 
 func FromProcess(source interface{}, path string, phase *Phase) (result interface{}, processed, mergeToParent, removeParentKey bool, replaceSource interface{}) {
@@ -115,7 +115,7 @@ func InterpolateString(input string, config map[string]interface{}) string {
 		//fmt.Printf("Value: %s\n", result.Value)
 
 		return result.Value.(string)
-	} else {
-		return input
 	}
+
+	return input
 }

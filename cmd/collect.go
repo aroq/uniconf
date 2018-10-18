@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var collectJsonPath string
+var collectJSONPath string
 
 var collectKey string
 
@@ -36,13 +36,13 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(uniconf.Collect(collectJsonPath, collectKey))
+		fmt.Println(uniconf.Collect(collectJSONPath, collectKey))
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(collectCmd)
 
-	collectCmd.Flags().StringVarP(&collectJsonPath, "jsonpath", "j", ".", "Jsonpath expression to get collect params from ('.' by default)")
+	collectCmd.Flags().StringVarP(&collectJSONPath, "jsonpath", "j", ".", "Jsonpath expression to get collect params from ('.' by default)")
 	collectCmd.Flags().StringVarP(&collectKey, "key", "k", "params", "Element name to collect params from ('params' by default)")
 }
