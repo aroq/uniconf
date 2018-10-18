@@ -26,17 +26,18 @@ matrix:
 notifications:
   email: false
 
-# Anything in before_script that returns a nonzero exit code will
-# flunk the build and immediately stop. It's sorta like having
-# set -e enabled in bash.
+git:
+  depth: 1
+
 before_script:
   - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/) # All the .go files, excluding vendor/
+  - GOLANGCI_LINT_VERSION="v1.10.2"
   - go get -v github.com/Masterminds/glide
   - go get -u golang.org/x/lint/golint
 #  - go get honnef.co/go/tools/cmd/megacheck
 #  - go get github.com/fzipp/gocyclo
 #  - go get golang.org/x/tools/cmd/goimports
-  - go install ./vendor/github.com/golangci/golangci-lint/cmd/golangci-lint
+  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $GOPATH/bin ${GOLANGCI_LINT_VERSION}
 
 script:
   - glide install
