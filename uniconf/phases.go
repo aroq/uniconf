@@ -13,9 +13,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (u *Uniconf) setCurrentPhase(name string) {
-	u.currentPhase = u.phases[name]
-}
+//func (u *Uniconf) setCurrentPhase(name string) {
+//	u.currentPhase = u.phases[name]
+//}
 
 func AddPhase(phase *Phase) { u.addPhase(phase) }
 func (u *Uniconf) addPhase(phase *Phase) {
@@ -166,7 +166,7 @@ func processKeys(key string, source interface{}, parent interface{}, path string
 							skip = true
 						}
 					}
-					if skip != true {
+					if !skip {
 						log.Debugf("processKeys path: %s, key: %s", path, key)
 						value := source.(string)
 						result, processed, mergeToParent, removeParentKey, replaceSource := processor.Callback(value, path, phase)
@@ -257,8 +257,7 @@ func (u *Uniconf) processKeys(inputs []interface{}) (interface{}, error) {
 	p := ""
 	for _, v := range keys {
 		p = strings.Trim(p+keyPrefix+"."+v, ".")
-		var source interface{}
-		source = u.config
+		var source interface{} = u.config
 		if p != "" {
 			source = unitool.SearchMapWithPathStringPrefixes(u.config, p)
 		}

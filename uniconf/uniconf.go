@@ -15,7 +15,6 @@
 package uniconf
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/aroq/uniconf/unitool"
@@ -43,7 +42,7 @@ type Uniconf struct {
 	sources      map[string]SourceHandler
 	history      map[string]interface{}
 	flatConfig   map[string]interface{}
-	contexts     []string
+	//contexts     []string
 	phases       map[string]*Phase
 	phasesList   []*Phase
 	currentPhase *Phase
@@ -52,7 +51,7 @@ type Uniconf struct {
 
 var u *Uniconf
 
-var configProviders []func() interface{}
+//var configProviders []func() interface{}
 
 const (
 	appTempFilesPath       = ".unipipe_temp"
@@ -76,7 +75,7 @@ func New() *Uniconf {
 
 // Init initializes uniconf.
 func init() {
-	//log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.DebugLevel)
 	u = New()
 }
 
@@ -135,7 +134,7 @@ func (u *Uniconf) mergeConfigEntity(configEntity *ConfigEntity) {
 func AddSource(source SourceHandler) (SourceHandler, error) { return u.addSource(source) }
 func (u *Uniconf) addSource(source SourceHandler) (SourceHandler, error) {
 	if _, ok := u.sources[source.Name()]; ok {
-		return nil, errors.New(fmt.Sprintf("Source %v already added", source.Name()))
+		return nil, fmt.Errorf("source %v already added", source.Name())
 	}
 	u.sources[source.Name()] = source
 	return source, nil

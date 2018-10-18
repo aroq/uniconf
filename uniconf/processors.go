@@ -62,7 +62,7 @@ func InterpolateString(input string, config map[string]interface{}) string {
 		config = u.flatConfig
 	}
 	if strings.Contains(input, "${") {
-		r, _ := regexp.Compile("(.*\\$\\{)(context\\.)(.*\\})")
+		r, _ := regexp.Compile(`(.*\${)(context\.)(.*})`)
 		input = r.ReplaceAllString(input, "$1$3")
 
 		tree, err := hil.Parse(input)

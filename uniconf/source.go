@@ -1,7 +1,6 @@
 package uniconf
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -182,12 +181,12 @@ func (s *SourceFile) LoadConfigEntity(configMap map[string]interface{}) (*Config
 				log.Errorf("UnmarshalByType error: %v", err)
 			}
 		} else {
-			log.Errorf("Config map doesn't contain id")
+			log.Errorf("config map doesn't contain id")
 		}
 	} else {
-		return nil, errors.New(fmt.Sprintf("Config entity already loaded: %s", configMap["id"].(string)))
+		return nil, fmt.Errorf("config entity already loaded: %s", configMap["id"].(string))
 	}
-	return nil, errors.New(fmt.Sprintf("file %s doesnt'exists", configMap["id"].(string)))
+	return nil, fmt.Errorf("file %s doesnt'exists", configMap["id"].(string))
 }
 
 func (s *SourceEnv) GetIncludeConfigEntityIds(scenarioId string) ([]string, error) {
@@ -226,7 +225,7 @@ func (s *SourceEnv) LoadConfigEntity(configMap map[string]interface{}) (*ConfigE
 		}
 		return s.Source.LoadConfigEntity(configMap)
 	}
-	return nil, errors.New(fmt.Sprintf("environment variable %s doesnt'exists", configMap["id"].(string)))
+	return nil, fmt.Errorf("environment variable %s doesnt'exists", configMap["id"].(string))
 }
 
 func (s *SourceConfigMap) LoadConfigEntity(configMap map[string]interface{}) (*ConfigEntity, error) {
@@ -244,9 +243,9 @@ func (s *SourceConfigMap) LoadConfigEntity(configMap map[string]interface{}) (*C
 			return s.Source.LoadConfigEntity(configMap)
 		}
 	} else {
-		return nil, errors.New(fmt.Sprintf("config entity already loaded: %s", configMap["id"].(string)))
+		return nil, fmt.Errorf("config entity already loaded: %s", configMap["id"].(string))
 	}
-	return nil, errors.New(fmt.Sprintf("source config map entry %s doesnt'exists", configMap["id"].(string)))
+	return nil, fmt.Errorf("source config map entry %s doesnt'exists", configMap["id"].(string))
 }
 
 func (s *SourceConfigMap) GetIncludeConfigEntityIds(scenarioId string) ([]string, error) {
