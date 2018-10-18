@@ -7,7 +7,7 @@ language: go
 # in the next version of Go. Don't worry! Later we declare that test runs
 # are allowed to fail on Go tip.
 go:
-  - "1.10"
+  - "1.11"
   - master
 
 # Skip the install step. Don't `go get` dependencies. Only build with the
@@ -22,7 +22,6 @@ matrix:
   # tests pass on the stable versions of Go.
   fast_finish: true
 
-# Don't email me the results of the test runs.
 notifications:
   email: false
 
@@ -30,16 +29,9 @@ git:
   depth: 1
 
 before_script:
-  - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/) # All the .go files, excluding vendor/
-  - GOLANGCI_LINT_VERSION="v1.10.2"
   - go get -v github.com/Masterminds/glide
-  - go get -u golang.org/x/lint/golint
+  - GOLANGCI_LINT_VERSION="v1.10.2"
   - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $GOPATH/bin ${GOLANGCI_LINT_VERSION}
 
 script:
-  - glide install
-  - make go/lint
-  - go test -v -race ./...
-  - go vet ./...
-# TODO: Uncomment this:
-#  - golint -set_exit_status $(go list ./...) # one last linter
+  - make go/ci/check

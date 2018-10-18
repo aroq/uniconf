@@ -27,6 +27,16 @@ go/deps: $(GLIDE)
 	$(GLIDE) install --strip-vendor
 	$(GLIDE) update  --strip-vendor
 
+.PHONY: go/ci/deps
+## Install dependencies in CI
+go/ci/deps: $(GLIDE)
+	$(call assert-set,GLIDE)
+	$(GLIDE) install
+
+.PHONY: go/ci/check
+## Check all in CI
+go/ci/check: go/ci/deps go/lint go/test
+
 .PHONY: go/deps-build
 ## Install dependencies for build
 go/deps-build:
@@ -56,6 +66,12 @@ go/clean-all: go/clean
 go/install: ${RELEASE_DIR}/$(APP) go/build
 	cp $(RELEASE_DIR)/$(APP) $(INSTALL_DIR)
 
+.PHONY: go/lint
 ## Lint
 go/lint:
 	golangci-lint run -E goimports -E golint -D errcheck --skip-dirs vendor
+
+.PHONY: go/test
+## Test
+go/test:
+	go test -v -race ./...
