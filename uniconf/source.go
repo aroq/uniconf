@@ -174,9 +174,8 @@ func (s *SourceFile) LoadConfigEntity(configMap map[string]interface{}) (*Config
 				configMap["config"] = conf
 				if configEntity, err := s.Source.LoadConfigEntity(configMap); err == nil {
 					return configEntity, nil
-				} else {
-					log.Warnf("LoadConfigEntity error: %v", err)
 				}
+				log.Warnf("LoadConfigEntity error: %v", err)
 			} else {
 				log.Errorf("UnmarshalByType error: %v", err)
 			}
