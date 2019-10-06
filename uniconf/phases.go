@@ -163,7 +163,9 @@ func processKeys(key string, source interface{}, parent interface{}, path string
 						if result != nil {
 							result, _ = unitool.DeepCopyMap(result.(map[string]interface{}))
 							if mergeToParent {
+								oldParent, _ := unitool.DeepCopyMap(parent.(map[string]interface{}))
 								unitool.Merge(parent, result)
+								unitool.Merge(parent, oldParent)
 							}
 							if removeParentKey {
 								log.Debugf("remove from list: %s", value)
