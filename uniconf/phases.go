@@ -46,15 +46,6 @@ func (u *Uniconf) load(inputs []interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-func PrintHistory(inputs []interface{}) (interface{}, error) { return u.printHistory(inputs) }
-func (u *Uniconf) printHistory(inputs []interface{}) (interface{}, error) {
-	if len(u.history) > 0 {
-		fmt.Println("Config history:")
-		fmt.Println(unitool.MarshallYaml(u.history))
-	}
-	return nil, nil
-}
-
 func DeepCollectChildren(inputs []interface{}) (interface{}, error) {
 	return u.deepCollectChildren(inputs)
 }

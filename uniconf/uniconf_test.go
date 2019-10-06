@@ -151,11 +151,6 @@ func TestLoad(t *testing.T) {
 		assert.Contains(t, uniconf.Config(), "log_level", "no 'log_level' key in config")
 		assert.Equal(t, uniconf.Config()["log_level"], "DEBUG", "log_level should equal 'DEBUG'")
 
-		//t.Run("history==env:UNICONF", func(t *testing.T) {
-		//	if _, ok := uniconf.Config().history["log_level"].(map[string]interface{})["load"].(map[string]interface{})["env:UNICONF"]; !ok {
-		//		t.Errorf("Uniconf history failed env:UNICONF")
-		//	}
-		//})
 	})
 	t.Run("Collect(params.jobs.common.helm.install).pipeline.from = '.params.pipelines.helm.install'", func(t *testing.T) {
 		path := "params.jobs.common.helm.install"

@@ -2,7 +2,6 @@ package uniconf
 
 import (
 	"errors"
-	"strconv"
 	"strings"
 
 	"github.com/aroq/uniconf/unitool"
@@ -10,12 +9,11 @@ import (
 )
 
 type ConfigEntity struct {
-	id      string
-	title   string
-	parent  *ConfigEntity
-	config  map[string]interface{}
-	source  SourceHandler
-	history map[string]interface{}
+	id     string
+	title  string
+	parent *ConfigEntity
+	config map[string]interface{}
+	source SourceHandler
 }
 
 func NewConfigEntity(s *Source, configMap map[string]interface{}) (*ConfigEntity, error) {
@@ -45,61 +43,13 @@ func NewConfigEntity(s *Source, configMap map[string]interface{}) (*ConfigEntity
 		configMap["title"] = configMap["id"]
 	}
 	c := &ConfigEntity{
-		id:      configMap["id"].(string),
-		title:   configMap["title"].(string),
-		source:  s,
-		config:  configMap["config"].(map[string]interface{}),
-		history: make(map[string]interface{}),
-		parent:  parent,
+		id:     configMap["id"].(string),
+		title:  configMap["title"].(string),
+		source: s,
+		config: configMap["config"].(map[string]interface{}),
+		parent: parent,
 	}
-	c.history = make(map[string]interface{})
-	c.saveHistory("", c.config)
 	return c, nil
-}
-
-func (c *ConfigEntity) getHistoryChain() string {
-	name := ""
-	if c.parent != nil {
-		name += c.parent.getHistoryChain() + " -> "
-	}
-	name += c.source.Name() + ":" + c.title + " (" + c.id + ")"
-	return name
-}
-
-func (c *ConfigEntity) saveHistory(path string, config map[string]interface{}) {
-	saver := func(historyKey string, v interface{}) {
-		if _, ok := c.history[historyKey]; !ok {
-			c.history[historyKey] = make(map[string]interface{})
-			c.history[historyKey].(map[string]interface{})["load"] = make(map[string]interface{})
-			c.history[historyKey].(map[string]interface{})["order"] = make([]string, 0)
-		}
-		if v == nil {
-			v = "..."
-		}
-		newEntry := map[string]interface{}{c.source.Name() + ":" + c.id: v}
-		c.history[historyKey].(map[string]interface{})["load"] = unitool.Merge(c.history[historyKey].(map[string]interface{})["load"], newEntry)
-		history := c.getHistoryChain()
-		c.history[historyKey].(map[string]interface{})["order"] = append(c.history[historyKey].(map[string]interface{})["order"].([]string), history)
-	}
-
-	for k, v := range config {
-		historyKey := strings.Trim(strings.Join([]string{path, k}, "."), ".")
-		switch v.(type) {
-		case map[string]interface{}:
-			saver(historyKey, nil)
-			c.saveHistory(historyKey, v.(map[string]interface{}))
-		case []interface{}:
-			for lk, lv := range v.([]interface{}) {
-				switch lv.(type) {
-				case map[string]interface{}:
-					saver(historyKey, nil)
-					c.saveHistory(historyKey+"["+strconv.Itoa(lk)+"]", lv.(map[string]interface{}))
-				}
-			}
-		case string, int, bool:
-			saver(historyKey, v)
-		}
-	}
 }
 
 func (c *ConfigEntity) process() {
@@ -160,7 +110,6 @@ func (c *ConfigEntity) processIncludes() {
 	}
 
 	includesConfig := make(map[string]interface{})
-	history := make(map[string]interface{})
 
 	if includes, ok := c.config[IncludeListElementName]; ok {
 		for _, v := range includes.([]interface{}) {
@@ -173,7 +122,6 @@ func (c *ConfigEntity) processIncludes() {
 				log.Printf("Process include: %s", source.Path()+":"+id)
 				if subConfigEntity, err := source.LoadConfigEntity(map[string]interface{}{"id": id, "title": title, "parent": c}); err == nil {
 					unitool.Merge(includesConfig, subConfigEntity.config)
-					unitool.Merge(history, subConfigEntity.history)
 				} else {
 					log.Warnf("LoadConfigEntity error: %v", err)
 				}
@@ -184,7 +132,6 @@ func (c *ConfigEntity) processIncludes() {
 	}
 	if c.config != nil {
 		unitool.Merge(includesConfig, c.config)
-		unitool.Merge(c.history, history)
 		c.config = includesConfig
 	}
 }

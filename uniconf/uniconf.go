@@ -40,7 +40,6 @@ type Callback struct {
 type Uniconf struct {
 	config     map[string]interface{}
 	sources    map[string]SourceHandler
-	history    map[string]interface{}
 	flatConfig map[string]interface{}
 	//contexts     []string
 	phases       map[string]*Phase
@@ -66,7 +65,6 @@ const (
 func New() *Uniconf {
 	u = new(Uniconf)
 	u.config = make(map[string]interface{})
-	u.history = make(map[string]interface{})
 	u.sources = make(map[string]SourceHandler)
 	u.phasesList = make([]*Phase, 0)
 	u.phases = make(map[string]*Phase)
@@ -128,7 +126,6 @@ func (u *Uniconf) Config() map[string]interface{} {
 
 func (u *Uniconf) mergeConfigEntity(configEntity *ConfigEntity) {
 	unitool.Merge(u.config, configEntity.config)
-	unitool.Merge(u.history, configEntity.history)
 }
 
 func AddSource(source SourceHandler) (SourceHandler, error) { return u.addSource(source) }

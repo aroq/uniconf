@@ -31,19 +31,16 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
-var MergeHistory map[string][]string
-
 func init() {
 	gob.Register(map[string]interface{}{})
 	gob.Register(map[string]string{})
 	gob.Register(map[string][]string{})
 	gob.Register([]interface{}{})
-	MergeHistory = make(map[string][]string)
 }
 
 // TODO: Add merge for lists (initial arguments).
-func Merge(dst, src interface{}) interface{} { return merge(dst, src, false, "", "") }
-func merge(dst, src interface{}, withHistory bool, id string, path string) interface{} {
+func Merge(dst, src interface{}) interface{} { return merge(dst, src, "", "") }
+func merge(dst, src interface{}, id string, path string) interface{} {
 	if src == nil {
 		return dst
 	}
@@ -60,7 +57,7 @@ func merge(dst, src interface{}, withHistory bool, id string, path string) inter
 				case map[string]interface{}:
 					switch dst.(map[string]interface{})[k].(type) {
 					case map[string]interface{}:
-						dst.(map[string]interface{})[k] = merge(dst.(map[string]interface{})[k].(map[string]interface{}), v.(map[string]interface{}), withHistory, id+"_"+k, "."+k)
+						dst.(map[string]interface{})[k] = merge(dst.(map[string]interface{})[k].(map[string]interface{}), v.(map[string]interface{}), id+"_"+k, "."+k)
 					default:
 						dst.(map[string]interface{})[k] = v
 					}
