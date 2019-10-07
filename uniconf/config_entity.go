@@ -121,7 +121,7 @@ func (c *ConfigEntity) processIncludes() {
 			for _, id := range ids {
 				log.Printf("Process include: %s", source.Path()+":"+id)
 				if subConfigEntity, err := source.LoadConfigEntity(map[string]interface{}{"id": id, "title": title, "parent": c}); err == nil {
-					unitool.Merge(includesConfig, subConfigEntity.config)
+					unitool.Merge(includesConfig, subConfigEntity.config, true)
 				} else {
 					log.Warnf("LoadConfigEntity error: %v", err)
 				}
@@ -131,7 +131,7 @@ func (c *ConfigEntity) processIncludes() {
 		delete(c.config, IncludeListElementName)
 	}
 	if c.config != nil {
-		unitool.Merge(includesConfig, c.config)
+		unitool.Merge(includesConfig, c.config, true)
 		c.config = includesConfig
 	}
 }

@@ -118,7 +118,7 @@ func (u *Uniconf) setContextObject(contextName string, context map[string]interf
 	}
 	u.config["contexts"].(map[string]interface{})[contextName] = context
 	if context, ok := context["context"]; ok {
-		unitool.Merge(u.config, context)
+		unitool.Merge(u.config, context, true)
 	}
 }
 
@@ -163,7 +163,7 @@ func processKeys(key string, source interface{}, parent interface{}, path string
 						if result != nil {
 							result, _ = unitool.DeepCopyMap(result.(map[string]interface{}))
 							if mergeToParent {
-								unitool.Merge(parent, result)
+								unitool.Merge(parent, result, false)
 							}
 							if removeParentKey {
 								log.Debugf("remove from list: %s", value)

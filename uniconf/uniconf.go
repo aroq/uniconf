@@ -15,8 +15,6 @@
 package uniconf
 
 import (
-	"fmt"
-
 	"github.com/aroq/uniconf/unitool"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -125,16 +123,14 @@ func (u *Uniconf) Config() map[string]interface{} {
 }
 
 func (u *Uniconf) mergeConfigEntity(configEntity *ConfigEntity) {
-	unitool.Merge(u.config, configEntity.config)
+	unitool.Merge(u.config, configEntity.config, true)
 }
 
-func AddSource(source SourceHandler) (SourceHandler, error) { return u.addSource(source) }
-func (u *Uniconf) addSource(source SourceHandler) (SourceHandler, error) {
-	if _, ok := u.sources[source.Name()]; ok {
-		return nil, fmt.Errorf("source %v already added", source.Name())
+func AddSource(source SourceHandler) { u.addSource(source) }
+func (u *Uniconf) addSource(source SourceHandler) {
+	if _, ok := u.sources[source.Name()]; !ok {
+		u.sources[source.Name()] = source
 	}
-	u.sources[source.Name()] = source
-	return source, nil
 }
 
 func (u *Uniconf) getSource(name string) SourceHandler {
