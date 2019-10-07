@@ -1,3 +1,7 @@
+Version 0.1.6:
+ - Add overrideDstStringValues bool param for Merge function
+ - Remove history related logic
+
 Version 0.1.5:
 
 
