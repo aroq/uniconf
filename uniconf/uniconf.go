@@ -123,11 +123,11 @@ func (u *Uniconf) Config() map[string]interface{} {
 }
 
 func (u *Uniconf) mergeConfigEntity(configEntity *ConfigEntity) {
-	unitool.Merge(u.config, configEntity.config)
+	unitool.Merge(u.config, configEntity.config, true)
 }
 
 func AddSource(source SourceHandler) { u.addSource(source) }
-func (u *Uniconf) addSource(source SourceHandler) () {
+func (u *Uniconf) addSource(source SourceHandler) {
 	if _, ok := u.sources[source.Name()]; !ok {
 		u.sources[source.Name()] = source
 	}

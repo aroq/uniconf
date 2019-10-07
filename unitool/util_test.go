@@ -25,7 +25,7 @@ func TestMerge(t *testing.T) {
 		},
 	}
 
-	Merge(src, dest)
+	Merge(src, dest, true)
 
 	// Test deep key merging.
 	if src["key1"].(map[string]interface{})["key1_subkey2"] != "key1_subkey2_value_override" {

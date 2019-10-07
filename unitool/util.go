@@ -39,8 +39,10 @@ func init() {
 }
 
 // TODO: Add merge for lists (initial arguments).
-func Merge(dst, src interface{}) interface{} { return merge(dst, src, "", "") }
-func merge(dst, src interface{}, id string, path string) interface{} {
+func Merge(dst, src interface{}, overrideDstStringValues bool) interface{} {
+	return merge(dst, src, "", overrideDstStringValues)
+}
+func merge(dst, src interface{}, id string, overrideDstStringValues bool) interface{} {
 	if src == nil {
 		return dst
 	}
@@ -57,7 +59,7 @@ func merge(dst, src interface{}, id string, path string) interface{} {
 				case map[string]interface{}:
 					switch dst.(map[string]interface{})[k].(type) {
 					case map[string]interface{}:
-						dst.(map[string]interface{})[k] = merge(dst.(map[string]interface{})[k].(map[string]interface{}), v.(map[string]interface{}), id+"_"+k, "."+k)
+						dst.(map[string]interface{})[k] = merge(dst.(map[string]interface{})[k].(map[string]interface{}), v.(map[string]interface{}), id+"_"+k, overrideDstStringValues)
 					default:
 						dst.(map[string]interface{})[k] = v
 					}
@@ -82,7 +84,9 @@ func merge(dst, src interface{}, id string, path string) interface{} {
 						dst.(map[string]interface{})[k] = v
 					}
 				default:
-					dst.(map[string]interface{})[k] = v
+					if overrideDstStringValues {
+						dst.(map[string]interface{})[k] = v
+					}
 				}
 			}
 		}
@@ -258,7 +262,7 @@ func DeepCollectParams(source map[string]interface{}, path, key string) (map[str
 		}
 		result := SearchMapWithPathStringPrefixes(source, p+"."+key)
 		if result != nil {
-			params = Merge(params, result).(map[string]interface{})
+			params = Merge(params, result, true).(map[string]interface{})
 		}
 	}
 	params, err = DeepCopyMap(params)
@@ -286,7 +290,7 @@ func DeepCollectChildren(source map[string]interface{}, path, key string) (map[s
 		if result != nil {
 			result, _ := DeepCopyMap(result.(map[string]interface{}))
 			delete(result, key)
-			params = Merge(params, result).(map[string]interface{})
+			params = Merge(params, result, true).(map[string]interface{})
 		}
 	}
 	return params, nil
@@ -326,7 +330,7 @@ func RemoveFromList(l []interface{}, item string) []interface{} {
 			} else if i == len(l)-1 {
 				return append(l[:i], l[i:]...)
 			} else {
-				return append(l[:i], l[i+1:]...)
+				return RemoveFromList(append(l[:i], l[i+1:]...), item)
 			}
 		}
 	}
