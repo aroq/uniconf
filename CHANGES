@@ -1,3 +1,8 @@
+Version 0.1.7:
+ - Add go-getter source
+ - Version bump to 0.1.6
+ - Version bump to 0.1.6
+
 Version 0.1.6:
  - Add overrideDstStringValues bool param for Merge function
  - Remove history related logic
