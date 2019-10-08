@@ -66,11 +66,18 @@ func (c *ConfigEntity) processSources() {
 			if _, ok := u.sources[k]; !ok {
 				// TODO: Check source type here.
 				sourceType := "repo"
-				if t, ok := v.(map[string]interface{})["type"]; ok {
-					sourceType = t.(string)
+				switch v.(type) {
+				case string:
+					sourceType = "go-getter"
+				case map[string]interface{}:
+					if t, ok := v.(map[string]interface{})["type"]; ok {
+						sourceType = t.(string)
+					}
 				}
 				var source SourceHandler
 				switch sourceType {
+				case "go-getter":
+					source = NewSourceGoGetter(k, v.(string))
 				case "repo":
 					source = NewSourceRepo(k, v.(map[string]interface{}))
 				case "env":
