@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aroq/uniconf/unitool"
+	"github.com/hashicorp/go-getter"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,6 +24,8 @@ type SourceHandler interface {
 
 type Source struct {
 	name           string
+	src            string
+	dst            string
 	isLoaded       bool
 	configEntities map[string]*ConfigEntity
 	autoloadID     string
@@ -31,6 +34,11 @@ type Source struct {
 type SourceFile struct {
 	Source
 	path string
+}
+
+type SourceGoGetter struct {
+	SourceFile
+	url string
 }
 
 type SourceRepo struct {
@@ -107,53 +115,33 @@ func (s *SourceFile) Path() string {
 	return s.path
 }
 
-func (s *SourceRepo) LoadSource() error {
-	err := unitool.GitClone(s.repo, s.refPrefix+s.ref, s.path, 1, true)
+func (s *SourceGoGetter) LoadSource() error {
+	err := getter.GetAny(s.path, s.url)
 	if err == nil {
-		s.Source.LoadSource()
+		err = s.Source.LoadSource()
 	}
 	return err
 }
 
-func (s *SourceFile) GetIncludeConfigEntityIds(scenarioID string) ([]string, error) {
+func (s *SourceRepo) LoadSource() error {
+	err := unitool.GitClone(s.repo, s.refPrefix+s.ref, s.path, 1, true)
+	if err == nil {
+		err = s.Source.LoadSource()
+	}
+	return err
+}
+
+func (s *SourceFile) GetIncludeConfigEntityIds(id string) ([]string, error) {
 	ids := make([]string, 0)
 	files := make([]string, 0)
-	if strings.Index(scenarioID, "/") == 0 {
-		ids = append(ids, scenarioID)
-	} else {
-		if strings.Contains(scenarioID, "/") {
-			s := strings.Split(scenarioID, "/")
-			id := ""
-			for _, v := range s {
-				if v != "" {
-					if id == "" {
-						id += v
-					} else {
-						id += "/" + v
-					}
-					ids = append(ids, id)
-				}
-			}
-		} else {
-			ids = append(ids, scenarioID)
-		}
-	}
-	var includeFileNamesToCheck []string
-	for _, id := range ids {
-		if !(strings.Index(scenarioID, "/") == 0) {
-			scenarioID = path.Join(includesPath, id)
-			includeFileName := path.Join(s.Path(), includesPath, id)
-			includeFileNamesToCheck = append(includeFileNamesToCheck, includeFileName+".yaml", includeFileName+".yml", includeFileName+".json", path.Join(includeFileName, mainConfigFileName))
-		} else {
-			scenarioID = strings.Trim(id, "/")
-			includeFileName := path.Join(s.Path(), scenarioID)
-			includeFileNamesToCheck = append(includeFileNamesToCheck, includeFileName)
-		}
-	}
+	ids = append(ids, id)
 
-	for _, f := range includeFileNamesToCheck {
-		if _, err := os.Stat(f); err == nil {
-			files = append(files, f)
+	//TODO: Refactor this logic as only single is processed now
+	for _, id := range ids {
+		id = strings.Trim(id, "/")
+		fileName := path.Join(s.Path(), id)
+		if _, err := os.Stat(fileName); err == nil {
+			files = append(files, fileName)
 		}
 	}
 
@@ -290,6 +278,17 @@ func NewSource(sourceName string, sourceMap map[string]interface{}) *Source {
 		source.autoloadID = autoloadID.(string)
 	}
 	return source
+}
+
+func NewSourceGoGetter(sourceName string, url string) *SourceGoGetter {
+	sourceMap := map[string]interface{}{
+		"name": sourceName,
+		"path": path.Join(appTempFilesPath, sourcesStoragePath, sourceName),
+	}
+	return &SourceGoGetter{
+		SourceFile: *NewSourceFile(sourceName, sourceMap),
+		url:        url,
+	}
 }
 
 func NewSourceRepo(sourceName string, sourceMap map[string]interface{}) *SourceRepo {

@@ -48,15 +48,12 @@ type Uniconf struct {
 
 var u *Uniconf
 
-//var configProviders []func() interface{}
-
 const (
 	appTempFilesPath       = ".unipipe_temp"
 	sourceMapElementName   = "sources"
 	IncludeListElementName = "from"
 	sourcesStoragePath     = "sources"
 	mainConfigFileName     = "config.yaml"
-	includesPath           = "scenarios"
 )
 
 // New returns an initialized Uniconf instance.
